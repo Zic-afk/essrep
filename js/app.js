@@ -1,0 +1,142 @@
+/* No dependencies or network requests: open index.html directly. */
+(() => {
+  'use strict';
+  const projects = Esscale.projects;
+  const $ = s => document.querySelector(s), canvas=$('#space'), ctx=canvas.getContext('2d',{alpha:false});
+  if(!ctx){$('.orbit-bar').hidden=true;return;}
+  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let W,H,P,R,CX,CY,lut,image,rotation=-.48,paused=reduced,selected=-1,target=null,last=0,time=0,drag=null;
+  let phase='idle',flight=null,transitionId=0,turnElapsed=0;
+  let zoom=null;
+  try{const saved=JSON.parse(sessionStorage.getItem('esscale-orbit'));if(saved&&Number.isFinite(saved.rotation))rotation=saved.rotation;}catch{}
+  const entryUrl=new URL(location.href);
+  const returnIndex=entryUrl.searchParams.get('orbit')==='return'?projects.findIndex(p=>p.id===entryUrl.searchParams.get('project')):-1;
+  if(returnIndex>=0){rotation=OrbitMath.target(projects[returnIndex].lon,rotation);entryUrl.searchParams.delete('orbit');entryUrl.searchParams.delete('project');history.replaceState(history.state,'',entryUrl.href);}
+  const mouse={x:0,y:0},parallax={x:0,y:0},hero=$('#home');
+  const projectList=$('#project-list');
+  $('#list-toggle').onclick=()=>projectList.showModal();
+  $('#list-close').onclick=()=>projectList.close();
+  const tilt=.27,ct=Math.cos(tilt),st=Math.sin(tilt),tau=Math.PI*2;
+  const texture=new Uint8ClampedArray(256*128*3);
+  const clouds=new Uint8Array(256*128);
+  const palette=[[24,68,78],[27,85,91],[35,102,99],[55,122,109],[86,143,113],[125,164,118],[164,187,137]];
+  for(let y=0;y<128;y++)for(let x=0;x<256;x++){
+    const u=x/256*tau,v=y/128*Math.PI;
+    const n=Math.sin(u*3+Math.sin(v*5)*1.3)+.55*Math.cos(u*7-v*8)+.26*Math.sin(u*13+v*17)+.14*Math.cos(u*29-v*31);
+    let k=n>.9?5:n>.5?4:n>.1?3:n>-.3?2:n>-.8?1:0;
+    if(y<12+Math.sin(u*4)*3)k=6;
+    const c=palette[k],i=(y*256+x)*3;texture.set(c,i);
+    clouds[y*256+x]=y>16&&y<84&&Math.sin(u*9+y*.055)+Math.sin(u*17-y*.11)*.45>1.1?1:0;
+  }
+  let seed=12345;const random=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
+  const stars=Array.from({length:190},(_,i)=>({x:random(),y:random(),b:random(),phase:random()*tau,layer:i<115?0:i<170?1:2}));
+  const nebula=document.createElement('canvas'),nebulaCtx=nebula.getContext('2d');
+  const atmosphere=document.createElement('canvas'),atmosphereCtx=atmosphere.getContext('2d');
+  const curtain=document.createElement('div');curtain.className='cloud-curtain';curtain.setAttribute('aria-hidden','true');
+  curtain.innerHTML='<div class="cloud-bank cloud-bank-a"></div><div class="cloud-bank cloud-bank-b"></div><div class="cloud-core"></div>';document.body.append(curtain);
+  const pins=projects.map((p,i)=>{
+    const b=document.createElement('a');b.className='beacon';b.href=p.page;
+    b.innerHTML=`<span class="beacon-ring" aria-hidden="true"></span><span class="beacon-dot" aria-hidden="true"></span><span class="beacon-label"><small>0${i+1} / ПРОЕКТ</small>${p.title}<span class="beacon-preview">${p.tags[0]}<br>Войти в атмосферу ↗</span></span>`;
+    b.setAttribute('aria-label',`Открыть проект ${p.title}`);b.onclick=e=>{if(e.button||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;e.preventDefault();focus(i);};$('#pins').append(b);return b;
+  });
+  function resize(){
+    P=innerWidth<750?3:4;W=Math.ceil(hero.clientWidth/P);H=Math.ceil(hero.clientHeight/P);canvas.width=W;canvas.height=H;canvas.style.width=W*P+'px';canvas.style.height=H*P+'px';
+    const geometry=OrbitMath.layout(hero.clientWidth,hero.clientHeight);R=geometry.R/P;CX=geometry.CX/P;CY=geometry.CY/P;image=ctx.createImageData(W,H);lut=[];
+    nebula.width=W;nebula.height=H;atmosphere.width=W;atmosphere.height=H;
+    // Cached, dithered nebula. All details use the same low-resolution grid.
+    for(let y=0;y<H;y+=2)for(let x=0;x<W;x+=2){
+      const nx=x/W,ny=y/H,band=ny-(.35+Math.sin(nx*5)*.13);
+      const n=Math.sin(x*.042+y*.06)+Math.cos(x*.075-y*.03)*.5;
+      const strength=Math.max(0,1-Math.abs(band)*6)*(n+1.5)/2.5;
+      if(strength>.26){nebulaCtx.fillStyle=strength>.68?'#182c3b':strength>.45?'#122330':'#101c29';nebulaCtx.fillRect(x,y,2,2);}
+    }
+    const air=atmosphereCtx.createImageData(W,H);
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+      const nx=(x+.5-CX)/R,ny=(CY-y-.5)/R,d=nx*nx+ny*ny;
+      if(d>1){const distance=(Math.sqrt(d)-1)*R;if(distance<3){const i=(y*W+x)*4;air.data.set(distance<1.2?[145,195,172,175]:[67,119,133,80],i);}continue;}
+      const nz=Math.sqrt(1-d),wy=ny*ct+nz*st,wz=-ny*st+nz*ct;
+      const light=-nx*.45+ny*.6+nz*.65;const shade=light>.8?1.1:light>.5?.9:light>.23?.7:.48;
+      lut.push([(y*W+x)*4,Math.atan2(nx,wz)/tau,Math.max(0,Math.min(127,Math.floor((.5-Math.asin(Math.min(1,wy))/Math.PI)*128))),shade,nz<.075]);
+    }
+    atmosphereCtx.putImageData(air,0,0);
+  }
+  function project(p){return OrbitMath.project(p,rotation,{R,CX,CY});}
+  function setPause(value){paused=value;$('#pause').textContent=paused?'▷':'Ⅱ';$('#pause').setAttribute('aria-label',paused?'Продолжить вращение':'Приостановить вращение');$('#pause').setAttribute('aria-pressed',String(paused));}
+  function remember(){try{sessionStorage.setItem('esscale-orbit',JSON.stringify({rotation}));}catch{}}
+  function focus(i){
+    if(phase!=='idle')return;
+    selected=(i+projects.length)%projects.length;const p=projects[selected];
+    target=OrbitMath.target(p.lon,rotation);phase='turning';turnElapsed=0;transitionId++;
+    hero.classList.add('is-travelling');$('.intro').inert=true;$('#cancel-flight').hidden=false;$('#cancel-flight').focus({preventScroll:true});$('#status').textContent=`Курс на ${p.title}`;
+    if(reduced){rotation=target;target=null;remember();location.assign(p.page);}
+  }
+  async function descend(){
+    if(selected<0||phase!=='turning')return;phase='descending';const id=transitionId,p=projects[selected],point=project(p);
+    remember();$('#status').textContent=`Входим в атмосферу · ${p.title}`;
+    const origin=`${Math.round(point.x*P)}px ${Math.round(point.y*P)}px`;
+    canvas.style.transformOrigin=origin;
+    zoom=canvas.animate([{transform:'scale(1)'},{transform:'scale(4.8)'}],{duration:900,easing:'cubic-bezier(.5,0,.7,.4)',fill:'forwards'});
+    curtain.classList.add('is-active');
+    flight=curtain.animate([{opacity:0,transform:'scale(1.7)',backgroundColor:'transparent'},{opacity:.3,offset:.3},{opacity:1,transform:'scale(1)',backgroundColor:'#d6e3cd',offset:.78},{opacity:1,transform:'scale(1)',backgroundColor:'#d6e3cd'}],{duration:900,easing:'ease-in',fill:'forwards'});
+    try{await flight.finished;}catch{return;}
+    if(id!==transitionId)return;
+    try{sessionStorage.setItem('esscale-arrival','yes');}catch{}
+    location.assign(p.page);
+  }
+  function cancel(){
+    if(phase==='idle')return;transitionId++;if(flight)flight.cancel();if(zoom)zoom.cancel();curtain.classList.remove('is-active');
+    target=null;selected=-1;phase='idle';hero.classList.remove('is-travelling');$('.intro').inert=false;$('#cancel-flight').hidden=true;$('#status').textContent='На орбите · 3 проекта';$('#list-toggle').focus({preventScroll:true});
+  }
+  async function ascend(index){
+    if(reduced){remember();return;}
+    const id=++transitionId;selected=index;phase='ascending';target=null;
+    hero.classList.add('is-travelling');$('.intro').inert=true;$('#cancel-flight').hidden=false;$('#status').textContent='Возвращаемся на орбиту';
+    const point=project(projects[index]);canvas.style.transformOrigin=`${Math.round(point.x*P)}px ${Math.round(point.y*P)}px`;
+    curtain.classList.add('is-active');
+    zoom=canvas.animate([{transform:'scale(4.8)'},{transform:'scale(1)'}],{duration:1100,easing:'cubic-bezier(.15,.55,.25,1)',fill:'both'});
+    flight=curtain.animate([{opacity:1,transform:'scale(1)',backgroundColor:'#d6e3cd'},{opacity:1,offset:.15,backgroundColor:'#d6e3cd'},{opacity:.6,transform:'scale(1.3)',backgroundColor:'transparent',offset:.45},{opacity:0,transform:'scale(1.7)',offset:.85},{opacity:0,transform:'scale(1.7)'}],{duration:1100,easing:'ease-out',fill:'both'});
+    draw(0);
+    try{await flight.finished;}catch{return;}
+    if(id!==transitionId)return;cancel();remember();
+  }
+  function draw(dt){
+    if(!reduced)time+=dt;
+    if(target!==null){turnElapsed+=dt;rotation+=(target-rotation)*Math.min(1,dt*10);if(Math.abs(target-rotation)<.008||turnElapsed>.65){rotation=target;target=null;if(phase==='turning')descend();}}
+    else if(!paused&&selected<0&&!drag)rotation+=dt*.10;
+    ctx.fillStyle='#080e19';ctx.fillRect(0,0,W,H);
+    parallax.x+=(mouse.x-parallax.x)*Math.min(1,dt*3);parallax.y+=(mouse.y-parallax.y)*Math.min(1,dt*3);
+    ctx.drawImage(nebula,Math.round(parallax.x),Math.round(parallax.y));
+    // Sparse, layered pixel stars and a small orbital satellite.
+    for(const s of stars){const speed=[.2,.8,1.8][s.layer];let x=(s.x*W-time*speed+parallax.x*(s.layer+1))%W;if(x<0)x+=W;const y=s.y*H+parallax.y*(s.layer+1);ctx.fillStyle=s.layer===2?'#c7d9bc':s.layer===1?'#6d8995':'#344855';if(reduced||Math.sin(time*.7+s.phase)>-.8)ctx.fillRect(Math.floor(x),Math.floor(y),1,1);if(s.b>.98&&s.layer===2){ctx.fillRect(Math.floor(x)-1,Math.floor(y),3,1);ctx.fillRect(Math.floor(x),Math.floor(y)-1,1,3);}}
+    SpaceObjects.draw(ctx,{width:W,height:H,time,parallax,mobile:innerWidth<750,reduced});
+    ctx.drawImage(atmosphere,0,0);
+    // Draw only the visible hemisphere into a transparent pixel buffer.
+    const data=image.data;
+    for(const [i,u,v,shade,rim] of lut){let tx=u-rotation/tau;tx-=Math.floor(tx);const ti=(v*256+Math.floor(tx*256))*3;
+      const cloudMix=clouds[v*256+((Math.floor(tx*256+time*.24))%256)]?.3:0;
+      data[i]=texture[ti]*shade*(1-cloudMix)+180*cloudMix+(rim?23:0);data[i+1]=texture[ti+1]*shade*(1-cloudMix)+202*cloudMix+(rim?35:0);data[i+2]=texture[ti+2]*shade*(1-cloudMix)+174*cloudMix+(rim?26:0);data[i+3]=255;}
+    // putImageData replaces the background, so composite through an offscreen surface.
+    planetCtx.putImageData(image,0,0);ctx.drawImage(planetCanvas,0,0);
+    pins.forEach((b,i)=>{
+      const pt=project(projects[i]),visible=pt.z>.08&&phase!=='descending'&&phase!=='ascending';
+      b.hidden=!visible;b.tabIndex=visible?0:-1;b.classList.toggle('is-target',i===selected);b.classList.toggle('label-left',pt.x*P>hero.clientWidth-195);
+      if(visible){b.style.transform=`translate(${Math.round(pt.x)*P}px,${Math.round(pt.y)*P}px)`;b.style.opacity=Math.min(1,(pt.z-.08)*5);b.style.zIndex=String(Math.round(pt.z*100));}
+    });
+  }
+  const planetCanvas=document.createElement('canvas'),planetCtx=planetCanvas.getContext('2d');
+  function layout(){if(phase!=='idle')cancel();resize();planetCanvas.width=W;planetCanvas.height=H;draw(0);}addEventListener('resize',layout);layout();setPause(paused);
+  if(returnIndex>=0)ascend(returnIndex);
+  let inView=true;new IntersectionObserver(entries=>{inView=entries[0].isIntersecting;},{threshold:0}).observe($('#home'));
+  function frame(now){const dt=Math.min((now-last)/1000,.05);last=now;if(!document.hidden&&inView)draw(dt);requestAnimationFrame(frame);}requestAnimationFrame(frame);
+  $('#cancel-flight').onclick=cancel;$('#pause').onclick=()=>setPause(!paused);$('#prev').onclick=()=>focus(selected<0?0:selected-1);$('#next').onclick=()=>focus(selected<0?0:selected+1);
+  addEventListener('keydown',e=>{if(projectList.open)return;if(e.key==='Escape')cancel();if(!inView||scrollY>innerHeight*.4||e.target.closest('input,textarea,select'))return;if(e.key==='ArrowRight'){e.preventDefault();focus(selected<0?0:selected+1);}if(e.key==='ArrowLeft'){e.preventDefault();focus(selected<0?0:selected-1);}if(e.code==='Space'&&!e.target.closest('button,a,summary')){e.preventDefault();setPause(!paused);}});
+  hero.addEventListener('pointermove',e=>{if(reduced||e.pointerType==='touch')return;const rect=hero.getBoundingClientRect();mouse.x=(e.clientX/rect.width-.5)*2;mouse.y=((e.clientY-rect.top)/rect.height-.5)*1.5;});
+  hero.addEventListener('pointerleave',()=>{mouse.x=0;mouse.y=0;});
+  canvas.addEventListener('pointerdown',e=>{if(phase!=='idle')return;drag={x:e.clientX,id:e.pointerId};target=null;canvas.setPointerCapture(e.pointerId);canvas.classList.add('dragging');});
+  canvas.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x;rotation+=dx*.005;drag.x=e.clientX;});
+  addEventListener('pagehide',remember);
+  addEventListener('pageshow',e=>{if(e.persisted){const previous=selected;cancel();if(previous>=0)ascend(previous);}});
+  const release=()=>{drag=null;canvas.classList.remove('dragging');};canvas.addEventListener('pointerup',release);canvas.addEventListener('pointercancel',release);
+})();
+
+

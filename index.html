@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ru"><head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#080e19">
+  <meta name="description" content="ESSCALE — наука, инженерия и разработка для бизнеса. Исследуйте проекты на планете и рассчитайте свою задачу.">
+  <meta property="og:title" content="ESSCALE — планета проектов"><meta property="og:description" content="Наука, инженерия и разработка. Выберите проект на планете или рассчитайте свой."><meta property="og:type" content="website">
+  <title>ESSCALE — планета проектов</title><link rel="icon" href="assets/favicon.svg"><link rel="stylesheet" href="css/style.css"><link rel="stylesheet" href="css/pixel-design.css"><link rel="stylesheet" href="css/orbit.css"><script src="js/data.js" defer></script><script src="js/orbit-math.js" defer></script><script src="js/space-objects.js" defer></script><script src="js/app.js" defer></script>
+</head><body class="orbit-home">
+  <a class="skip-link" href="pages/calculator.html">Перейти к расчёту проекта</a>
+  <header class="header"><a class="brand" href="index.html" aria-label="ESSCALE — главная"><span class="brand-icon">✦</span> ESSCALE<span class="brand-sub">наука · инженерия · бизнес</span></a></header>
+  <main>
+    <section id="home" class="hero" aria-label="Планета проектов ESSCALE">
+      <canvas id="space" aria-hidden="true"></canvas>
+      <div class="intro"><div class="eyebrow"><i></i> НАУКА · ИНЖЕНЕРИЯ · БИЗНЕС</div><h1>Мы не знаем,<br>как это <em>сделать.</em></h1><p>Пока. Обычно это занимает пару недель.</p><a class="primary-link orbit-cta" href="pages/calculator.html">Рассчитать проект ↗</a></div>
+      <div id="pins" aria-label="Проекты на планете"></div>
+      <button id="cancel-flight" class="cancel-flight" hidden>Отменить полёт · Esc</button>
+      <div class="orbit-bar"><div class="status"><i></i><span id="status" role="status">На орбите · 3 проекта</span></div><div class="controls"><button id="prev" aria-label="Открыть предыдущий проект">←</button><button id="pause" aria-label="Приостановить вращение">Ⅱ</button><button id="next" aria-label="Открыть следующий проект">→</button><span>вращайте планету</span></div><button id="list-toggle" class="quiet" aria-haspopup="dialog">Проекты ↗</button></div>
+    </section>
+  </main>
+  <dialog id="project-list" class="orbit-project-list" aria-labelledby="project-list-title"><div class="project-list-heading"><h2 id="project-list-title">Проекты на орбите</h2><button id="list-close" aria-label="Закрыть список проектов">×</button></div><a href="pages/project-wearninglords.html">01 / WearningLords <span>↗</span></a><a href="pages/project-scandere.html">02 / Scandere <span>↗</span></a><a href="pages/project-gophoto.html">03 / GoPhoto <span>↗</span></a></dialog>
+  <noscript><nav class="no-js-projects" aria-label="Проекты"><a href="pages/project-wearninglords.html">WearningLords</a><a href="pages/project-scandere.html">Scandere</a><a href="pages/project-gophoto.html">GoPhoto</a></nav></noscript>
+</body></html>
