@@ -11,6 +11,7 @@
   try{const saved=JSON.parse(sessionStorage.getItem('esscale-orbit'));if(saved&&Number.isFinite(saved.rotation))rotation=saved.rotation;}catch{}
   const entryUrl=new URL(location.href);
   const returnIndex=entryUrl.searchParams.get('orbit')==='return'?projects.findIndex(p=>p.id===entryUrl.searchParams.get('project')):-1;
+  let browseIndex=returnIndex;
   if(returnIndex>=0){rotation=OrbitMath.target(projects[returnIndex].lon,rotation);entryUrl.searchParams.delete('orbit');entryUrl.searchParams.delete('project');history.replaceState(history.state,'',entryUrl.href);}
   const mouse={x:0,y:0},parallax={x:0,y:0},hero=$('#home');
   const projectList=$('#project-list');
@@ -19,6 +20,7 @@
   let previewMotion=null,previewContentMotion=null,previewClosing=false;
   const previewTilt=CardTilt.attach(preview,$('.preview-surface'),()=>phase==='preview'&&!previewClosing&&(!previewMotion||previewMotion.playState!=='running'));
   $('#preview-close').onclick=hidePreview;
+  $('#preview-prev').onclick=()=>cycleProject(-1);$('#preview-next').onclick=()=>cycleProject(1);
   preview.addEventListener('cancel',event=>{event.preventDefault();hidePreview();});
   preview.addEventListener('click',event=>{if(event.target!==preview)return;const rect=preview.getBoundingClientRect();if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)hidePreview();});
   preview.addEventListener('close',()=>{clearPreviewVisuals();if(phase==='preview'){selected=-1;phase='idle';$('#status').textContent='На орбите · 3 проекта';$('#list-toggle').focus({preventScroll:true});}});
@@ -132,7 +134,7 @@
     if(phase!=='idle'&&phase!=='preview')return;
     previewTilt.reset();
     if(previewMotion)previewMotion.cancel();if(previewContentMotion)previewContentMotion.cancel();previewClosing=false;
-    selected=(i+projects.length)%projects.length;const p=projects[selected];
+    selected=((i%projects.length)+projects.length)%projects.length;browseIndex=selected;const p=projects[selected];
     phase='preview';target=null;
     if(project(p).z<=.1)rotation=OrbitMath.target(p.lon,rotation);
     $('#preview-title').textContent=p.title;$('#preview-description').textContent=p.teaser;$('#preview-category').textContent=p.category;$('#preview-number').textContent='0'+(selected+1)+' / 03';$('#preview-art').innerHTML=PreviewArt[p.id];
@@ -221,8 +223,9 @@
   if(returnIndex>=0)ascend(returnIndex);
   let inView=true;new IntersectionObserver(entries=>{inView=entries[0].isIntersecting;},{threshold:0}).observe($('#home'));
   function frame(now){const dt=Math.min((now-last)/1000,.05);last=now;if(!document.hidden&&inView)draw(dt);requestAnimationFrame(frame);}requestAnimationFrame(frame);
-  $('#cancel-flight').onclick=cancel;$('#pause').onclick=()=>setPause(!paused);$('#prev').onclick=()=>focus(selected<0?0:selected-1);$('#next').onclick=()=>focus(selected<0?0:selected+1);
-  addEventListener('keydown',e=>{if(projectList.open)return;if(preview.open){if(e.key==='ArrowRight'){e.preventDefault();focus(selected+1);}if(e.key==='ArrowLeft'){e.preventDefault();focus(selected-1);}return;}if(e.key==='Escape')cancel();if(!inView||scrollY>innerHeight*.4||e.target.closest('input,textarea,select'))return;if(e.key==='ArrowRight'){e.preventDefault();focus(selected<0?0:selected+1);}if(e.key==='ArrowLeft'){e.preventDefault();focus(selected<0?0:selected-1);}if(e.code==='Space'&&!e.target.closest('button,a,summary')){e.preventDefault();setPause(!paused);}});
+  function cycleProject(direction){const current=selected>=0?selected:browseIndex;focus(current<0?(direction>0?0:projects.length-1):current+direction);}
+  $('#cancel-flight').onclick=cancel;$('#pause').onclick=()=>setPause(!paused);$('#prev').onclick=()=>cycleProject(-1);$('#next').onclick=()=>cycleProject(1);
+  addEventListener('keydown',e=>{if(projectList.open)return;if(preview.open){if(e.key==='ArrowRight'){e.preventDefault();cycleProject(1);}if(e.key==='ArrowLeft'){e.preventDefault();cycleProject(-1);}return;}if(e.key==='Escape')cancel();if(!inView||scrollY>innerHeight*.4||e.target.closest('input,textarea,select'))return;if(e.key==='ArrowRight'){e.preventDefault();cycleProject(1);}if(e.key==='ArrowLeft'){e.preventDefault();cycleProject(-1);}if(e.code==='Space'&&!e.target.closest('button,a,summary')){e.preventDefault();setPause(!paused);}});
   hero.addEventListener('pointermove',e=>{if(e.pointerType==='touch')return;const rect=hero.getBoundingClientRect();Constellations.pointer(phase==='idle'?{x:(e.clientX-rect.left)/P,y:(e.clientY-rect.top)/P}:null);if(reduced)return;mouse.x=(e.clientX/rect.width-.5)*2;mouse.y=((e.clientY-rect.top)/rect.height-.5)*1.5;});
   hero.addEventListener('pointerleave',()=>{mouse.x=0;mouse.y=0;Constellations.pointer(null);});
   let meteorTap=null,skyTap=null;
