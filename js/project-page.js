@@ -1,4 +1,11 @@
 (() => {
+  // A preview is not a visit: record exploration only on the project page.
+  const visitedId=location.pathname.split('/').pop().replace(/^project-/,'').replace(/\.html$/,'');
+  if(['wearninglords','scandere','gophoto','giovanna'].includes(visitedId))try{
+    const saved=JSON.parse(localStorage.getItem('giovanna-explored-v1')||'[]');
+    const ids=Array.isArray(saved)?saved:[];
+    localStorage.setItem('giovanna-explored-v1',JSON.stringify([...new Set([...ids,visitedId])]));
+  }catch{}
   const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
   let overlay=null,animation=null,leaving=false;
   function clearClouds(){if(animation)animation.cancel();if(overlay)overlay.remove();overlay=null;animation=null;}
@@ -8,7 +15,8 @@
   // Show the arrival only after the deliberate orbital flight, not on direct links.
   let arrival=false;try{arrival=sessionStorage.getItem('esscale-arrival')==='yes';sessionStorage.removeItem('esscale-arrival');}catch{}
   if(arrival&&!reduced){
-    const cloud=clouds();animation=cloud.animate([{opacity:1,transform:'scale(1)',backgroundColor:'#d6e3cd'},{opacity:0,transform:'scale(1.6)',backgroundColor:'transparent'}],{duration:600,easing:'ease-out'});
+    document.body.classList.add('orbital-arrival');
+    const cloud=overlay||clouds();animation=cloud.animate([{opacity:1,transform:'scale(1)',backgroundColor:'#d6e3cd'},{opacity:0,transform:'scale(1.6)',backgroundColor:'transparent'}],{duration:600,easing:'ease-out'});
     const current=animation;current.finished.then(()=>{if(animation===current)clearClouds();},()=>{});
   }
   document.addEventListener('click',async event=>{

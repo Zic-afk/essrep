@@ -1,0 +1,3 @@
+const assert=require('node:assert/strict'),{randomProjects}=require('../js/orbit-math.js');
+for(let seed=1;seed<100;seed++){let state=seed;const rng=()=>{state=(1664525*state+1013904223)>>>0;return state/4294967296;},points=randomProjects(4,rng);assert.equal(points.length,4);for(let i=0;i<4;i++){assert.ok(Math.abs(points[i].lat)<.5);for(let j=0;j<i;j++){const a=points[i],b=points[j],dot=Math.sin(a.lat)*Math.sin(b.lat)+Math.cos(a.lat)*Math.cos(b.lat)*Math.cos(a.lon-b.lon);assert.ok(Math.acos(Math.max(-1,Math.min(1,dot)))>.9,'Markers retain angular separation');}}}
+assert.notDeepEqual(randomProjects(4),randomProjects(4));console.log('PASS: randomized marker positions and minimum angular separation.');

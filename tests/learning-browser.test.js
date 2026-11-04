@@ -46,7 +46,7 @@ const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
     if(width===390)await screenshot('preview-wearninglords-mobile.png');
   }
   await evaluate("document.querySelector('.back-orbit').click()");
-  for(let i=0;i<50;i++){if(await evaluate("document.readyState==='complete'&&location.pathname.endsWith('index.html')&&document.querySelectorAll('.beacon').length===3"))break;await delay(100);}
+  for(let i=0;i<50;i++){if(await evaluate("document.readyState==='complete'&&location.pathname.endsWith('index.html')&&document.querySelectorAll('.beacon').length===4"))break;await delay(100);}
   assert.ok(await evaluate("document.querySelector('#space').getAnimations().some(a=>a.effect.getKeyframes()[0].transform==='scale(4.8)')"),'WearningLords returns through clouds to the globe');
   await delay(1200);await send('Page.navigate',{url:pathToFileURL(path.resolve(__dirname,'../pages/project-wearninglords.html')).href});await delay(350);
   await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});await send('Page.reload');await delay(350);assert.ok(await evaluate("!document.body.classList.contains('js-motion')"),'Reduced motion shows content without reveals');

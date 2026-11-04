@@ -1,0 +1,8 @@
+.discovery-message{position:absolute;left:6%;bottom:16%;z-index:120;max-width:min(360px,85vw);padding:14px 36px 14px 16px;border:1px solid #426773;background:#0b1825ed;box-shadow:4px 4px 0 #030b14;color:#b8d8cf;font:11px/1.8 'Orbit Pixel',monospace;pointer-events:auto}
+.discovery-message[hidden]{display:none}.discovery-message button{position:absolute;right:7px;top:7px;background:transparent;border:0;color:#b8d8cf;font-size:20px;cursor:pointer}
+.explored-badge{display:block!important;margin-top:5px;color:#a9cf9c!important;font-size:8px!important;letter-spacing:.04em}.beacon.is-explored .beacon-dot{box-shadow:0 0 0 2px #a9cf9c55}
+.beacon.is-signal .beacon-ring{border-color:#d6e9ac;box-shadow:0 0 0 6px #b8e5c92b,0 0 25px #b8e5c955}.space-action.has-incoming-signal{border:1px solid #b7d8ae!important;box-shadow:0 0 0 5px #a4cfba22;animation:incoming-signal 1.5s ease-out infinite}
+#planet-scan{font-family:monospace;font-size:21px}#planet-scan[aria-pressed=true]{color:#bce9d5;background:#244650}.is-celebrating .planet-name{opacity:0}
+@keyframes incoming-signal{50%{box-shadow:0 0 0 12px #a4cfba08}}
+@media(max-width:749px){.discovery-message{bottom:19%;font-size:9px;max-width:80vw;padding:10px 30px 10px 12px}}
+@media(prefers-reduced-motion:reduce){.space-action.has-incoming-signal{animation:none}}

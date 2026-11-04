@@ -1,0 +1,7 @@
+.giovanna-page{isolation:isolate;--gp-cyan:#9edce1;background:#03080e}
+.giovanna-world{background:radial-gradient(ellipse,#122733,transparent 65%)}
+.giovanna-case{position:relative}
+.giovanna-case>.back-orbit:first-child{display:inline-flex;position:relative;top:-22px}
+.giovanna-step{position:relative;background:#07131dd9;border-color:#adcddc2b;transition:border-color .35s,background-color .35s,box-shadow .35s;transform:translate3d(0,0,0)}
+.giovanna-step:hover{border-color:#9edce169;background:#0b1d28ed;box-shadow:0 12px 35px #02091040}
+@media(prefers-reduced-motion:reduce){.giovanna-step{transition:none;transform:none!important}}

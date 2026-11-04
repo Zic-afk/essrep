@@ -1,0 +1,40 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const delay=ms=>new Promise(r=>setTimeout(r,ms));
+(async()=>{
+ const tab=(await(await fetch('http://127.0.0.1:9222/json')).json()).find(t=>t.type==='page');
+ const ws=new WebSocket(tab.webSocketDebuggerUrl);await new Promise(r=>ws.onopen=r);
+ let seq=0;const pending=new Map(),errors=[];
+ ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.id){const p=pending.get(m.id);pending.delete(m.id);m.error?p.reject(m.error):p.resolve(m.result);}else if(m.method==='Runtime.exceptionThrown')errors.push(m.params.exceptionDetails.text);};
+ const send=(method,params={})=>new Promise((resolve,reject)=>{const id=++seq;pending.set(id,{resolve,reject});ws.send(JSON.stringify({id,method,params}));});
+ const evaluate=async expression=>{const r=await send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw Error(JSON.stringify(r.exceptionDetails));return r.result.value;};
+ try{
+ await send('Runtime.enable');await send('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1,mobile:false});
+ await send('Page.navigate',{url:require('node:url').pathToFileURL(path.resolve(__dirname,'../pages/project-giovanna.html')).href});await delay(850);
+ assert.ok(await evaluate("!document.querySelector('.giovanna-field')"));
+ assert.equal(await evaluate("getComputedStyle(document.querySelector('.giovanna-case>.back-orbit')).top"),'-22px');
+ await evaluate("document.querySelector('.blueprint-toggle').click()");assert.ok(await evaluate("document.body.classList.contains('is-blueprint')&&document.querySelector('.blueprint-toggle').getAttribute('aria-pressed')==='true'"));
+ assert.ok(await evaluate("document.querySelector('.giovanna-step').dataset.measure.includes('px')"));
+ await evaluate("document.querySelector('.living-word').click()");await delay(750);
+ assert.equal(await evaluate("document.querySelectorAll('.word-group small').length"),4);
+ assert.equal(await evaluate("getComputedStyle(document.querySelector('.word-group small')).opacity"),'1');
+ let detailsShot=await send('Page.captureScreenshot',{format:'png'});fs.writeFileSync(path.resolve(__dirname,'../artifacts/previews/giovanna-blueprint.png'),Buffer.from(detailsShot.data,'base64'));
+ await evaluate("document.querySelector('.blueprint-toggle').click();document.querySelector('.living-word').click()");
+ const initialRoute=await evaluate("document.querySelector('.route-fill').style.strokeDashoffset");
+ await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:1000,y:300});await delay(500);
+ let shot=await send('Page.captureScreenshot',{format:'png'});fs.writeFileSync(path.resolve(__dirname,'../artifacts/previews/giovanna-field.png'),Buffer.from(shot.data,'base64'));
+ await evaluate("document.querySelector('.giovanna-steps').scrollIntoView({block:'center',behavior:'instant'})");await delay(150);
+ assert.notEqual(await evaluate("document.querySelector('.route-fill').style.strokeDashoffset"),initialRoute,'Route advances with scroll');
+ assert.equal(await evaluate("document.querySelectorAll('.giovanna-step.is-current-stage').length"),1);
+ const point=await evaluate("(()=>{const r=document.querySelector('.giovanna-step').getBoundingClientRect();return {x:r.right-30,y:r.bottom-30}})()");
+ await send('Input.dispatchMouseEvent',{type:'mouseMoved',...point});await delay(500);
+ const translation=()=>evaluate("(()=>{const m=new DOMMatrix(getComputedStyle(document.querySelector('.giovanna-step')).transform);return {x:m.m41,y:m.m42}})()");
+ const moved=await translation();assert.ok(moved.x>1&&moved.x<=6&&moved.y>1&&moved.y<=6,'Card follows cursor within safe bounds');
+ assert.ok(await evaluate("(()=>{const r=[...document.querySelectorAll('.giovanna-step')].map(e=>e.getBoundingClientRect());return r.every((a,i)=>r.every((b,j)=>i===j||a.right<=b.left||a.left>=b.right||a.bottom<=b.top||a.top>=b.bottom))})()"),'Cards do not overlap');
+ shot=await send('Page.captureScreenshot',{format:'png'});fs.writeFileSync(path.resolve(__dirname,'../artifacts/previews/giovanna-field-cards.png'),Buffer.from(shot.data,'base64'));
+ await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:5,y:5});await delay(800);assert.ok(Math.abs((await translation()).x)<.1,'Card returns smoothly');
+ await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});await delay(150);
+ await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});await evaluate("scrollTo({top:0,behavior:'instant'})");await delay(200);assert.ok(await evaluate('document.documentElement.scrollWidth<=innerWidth'),'Mobile has no overflow');
+ shot=await send('Page.captureScreenshot',{format:'png'});fs.writeFileSync(path.resolve(__dirname,'../artifacts/previews/giovanna-field-mobile.png'),Buffer.from(shot.data,'base64'));
+ assert.deepEqual(errors,[]);console.log('PASS: no background canvas, magnetic cards, no overlap, return, reduced motion and mobile layout.');
+ }finally{await send('Emulation.setEmulatedMedia',{features:[]});await send('Emulation.clearDeviceMetricsOverride');ws.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;});

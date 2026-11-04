@@ -1,7 +1,7 @@
 /* No dependencies or network requests: open index.html directly. */
 (() => {
   'use strict';
-  const projects = Esscale.projects;
+  const projects = Esscale.projects.map(project=>({...project}));
   const $ = s => document.querySelector(s), canvas=$('#space'), ctx=canvas.getContext('2d',{alpha:false});
   if(!ctx){$('.orbit-bar').hidden=true;return;}
   const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -11,19 +11,25 @@
   try{const saved=JSON.parse(sessionStorage.getItem('esscale-orbit'));if(saved&&Number.isFinite(saved.rotation))rotation=saved.rotation;}catch{}
   const entryUrl=new URL(location.href);
   const returnIndex=entryUrl.searchParams.get('orbit')==='return'?projects.findIndex(p=>p.id===entryUrl.searchParams.get('project')):-1;
+  let positions=null;
+  try{const saved=JSON.parse(sessionStorage.getItem('giovanna-positions'));if(entryUrl.searchParams.get('orbit')==='return'&&Array.isArray(saved)&&saved.length===projects.length&&saved.every((p,i)=>p.id===projects[i].id&&Number.isFinite(p.lat)&&Math.abs(p.lat)<=.6&&Number.isFinite(p.lon)))positions=saved;}catch{}
+  if(!positions)positions=OrbitMath.randomProjects(projects.length).map((p,i)=>({...p,id:projects[i].id}));
+  projects.forEach((p,i)=>{p.lat=positions[i].lat;p.lon=positions[i].lon;});
+  try{sessionStorage.setItem('giovanna-positions',JSON.stringify(positions));}catch{}
   let browseIndex=returnIndex;
   if(returnIndex>=0){rotation=OrbitMath.target(projects[returnIndex].lon,rotation);entryUrl.searchParams.delete('orbit');entryUrl.searchParams.delete('project');history.replaceState(history.state,'',entryUrl.href);}
   const mouse={x:0,y:0},parallax={x:0,y:0},hero=$('#home');
   const projectList=$('#project-list');
   const preview=$('#project-preview');
   const previewConnector=$('#preview-connector');
+  document.body.append($('#skip-journey'),$('#cancel-flight'));
   let previewMotion=null,previewContentMotion=null,previewClosing=false;
   const previewTilt=CardTilt.attach(preview,$('.preview-surface'),()=>phase==='preview'&&!previewClosing&&(!previewMotion||previewMotion.playState!=='running'));
   $('#preview-close').onclick=hidePreview;
   $('#preview-prev').onclick=()=>cycleProject(-1);$('#preview-next').onclick=()=>cycleProject(1);
   preview.addEventListener('cancel',event=>{event.preventDefault();hidePreview();});
   preview.addEventListener('click',event=>{if(event.target!==preview)return;const rect=preview.getBoundingClientRect();if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)hidePreview();});
-  preview.addEventListener('close',()=>{clearPreviewVisuals();if(phase==='preview'){selected=-1;phase='idle';$('#status').textContent='На орбите · 3 проекта';$('#list-toggle').focus({preventScroll:true});}});
+  preview.addEventListener('close',()=>{clearPreviewVisuals();if(phase==='preview'){selected=-1;phase='idle';$('#status').textContent='На орбите · 4 проекта';$('#list-toggle').focus({preventScroll:true});}});
   $('#preview-open').onclick=event=>{if(event.button||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;event.preventDefault();launch();};
   const spaceActions=document.createElement('div');spaceActions.className='space-actions';spaceActions.setAttribute('role','group');spaceActions.setAttribute('aria-label','Интерактивные объекты космоса');hero.append(spaceActions);
   const actionButtons=new Map();
@@ -33,7 +39,7 @@
     for(const action of actions){
       present.add(action.id);let button=actionButtons.get(action.id);
       if(!button){button=document.createElement('button');button.className='space-action';button.type='button';button.dataset.action=action.id;button.setAttribute('aria-label',action.label);button.dataset.label=action.label;
-        const activate=()=>{if(phase!=='idle')return;if(action.id.startsWith('signal-'))SpaceObjects.signal(action.id);else Constellations.activate(Number(action.id.split('-')[1]));};
+        const activate=()=>{if(phase!=='idle')return;if(action.id.startsWith('signal-')){SpaceObjects.signal(action.id);discoveries.signal(action.id);}else Constellations.activate(Number(action.id.split('-')[1]));};
         button.onclick=activate;button.onfocus=()=>{if(action.id.startsWith('constellation-'))activate();};spaceActions.append(button);actionButtons.set(action.id,button);
       }
       if(button.dataset.label!==action.label){button.dataset.label=action.label;button.setAttribute('aria-label',action.label);}
@@ -65,9 +71,9 @@
   const curtain=document.createElement('div');curtain.className='cloud-curtain';curtain.setAttribute('aria-hidden','true');
   curtain.innerHTML='<div class="cloud-bank cloud-bank-a"></div><div class="cloud-bank cloud-bank-b"></div><div class="cloud-core"></div>';document.body.append(curtain);
   const pins=projects.map((p,i)=>{
-    const b=document.createElement('a');b.className='beacon';b.href=p.page;
+    const b=document.createElement('a');b.className='beacon'+(p.id==='giovanna'?' beacon-giovanna':'');b.href=p.page;
     b.innerHTML=`<span class="beacon-ring" aria-hidden="true"></span><span class="beacon-dot" aria-hidden="true"></span><span class="beacon-label"><small>0${i+1} / ПРОЕКТ</small>${p.title}<span class="beacon-preview">${p.tags[0]}<br>Описание и функции ↗</span></span>`;
-    b.setAttribute('aria-label',`О проекте ${p.title}`);b.setAttribute('aria-haspopup','dialog');b.onclick=e=>{if(e.button||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;e.preventDefault();focus(i);};$('#pins').append(b);return b;
+    b.dataset.lat=p.lat;b.dataset.lon=p.lon;b.setAttribute('aria-label',`О проекте ${p.title}`);b.setAttribute('aria-haspopup','dialog');b.onclick=e=>{if(e.button||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;e.preventDefault();focus(i);};$('#pins').append(b);return b;
   });
   function resize(){
     P=innerWidth<750?3:4;W=Math.ceil(hero.clientWidth/P);H=Math.ceil(hero.clientHeight/P);canvas.width=W;canvas.height=H;canvas.style.width=W*P+'px';canvas.style.height=H*P+'px';
@@ -95,13 +101,13 @@
   function remember(){try{sessionStorage.setItem('esscale-orbit',JSON.stringify({rotation}));}catch{}}
   function clearPreviewVisuals(){
     previewTilt.reset();
-    if(previewMotion)previewMotion.cancel();if(previewContentMotion)previewContentMotion.cancel();previewClosing=false;previewConnector.setAttribute('hidden','');hero.classList.remove('has-preview');hero.style.removeProperty('--preview-shift');
+    if(previewMotion)previewMotion.cancel();if(previewContentMotion)previewContentMotion.cancel();previewClosing=false;previewConnector.setAttribute('hidden','');hero.classList.remove('has-preview','giovanna-view');hero.style.removeProperty('--preview-shift');
   }
-  function previewPoint(){const point=project(projects[selected]),rect=canvas.getBoundingClientRect();return {x:rect.left+point.x*P,y:rect.top+point.y*P};}
+  function previewPoint(){const point=project(projects[selected]),rect=canvas.getBoundingClientRect();return {x:rect.left+point.x*rect.width/W,y:rect.top+point.y*rect.height/H};}
   function positionPreview(){
     const point=project(projects[selected]),scene=hero.getBoundingClientRect(),mobile=innerWidth<750;
     const source={x:scene.left+point.x*P,y:scene.top+point.y*P};
-    hero.classList.add('has-preview');hero.style.setProperty('--preview-shift',mobile?-Math.min(innerHeight*.35,Math.max(0,source.y-innerHeight*.26))+'px':'0px');
+    hero.classList.add('has-preview');hero.style.setProperty('--preview-shift',mobile?-Math.max(0,source.y-Math.min(innerHeight*.26,innerHeight-preview.offsetHeight-52))+'px':'0px');
     const width=preview.offsetWidth,height=preview.offsetHeight;
     const desiredX=source.x+40+width<innerWidth-24?source.x+40:source.x-width-40;
     const x=mobile?12:Math.max(24,Math.min(innerWidth-width-24,desiredX));
@@ -135,12 +141,12 @@
     previewTilt.reset();
     if(previewMotion)previewMotion.cancel();if(previewContentMotion)previewContentMotion.cancel();previewClosing=false;
     selected=((i%projects.length)+projects.length)%projects.length;browseIndex=selected;const p=projects[selected];
-    phase='preview';target=null;
+    phase='preview';target=null;hero.classList.toggle('giovanna-view',p.id==='giovanna');
     if(project(p).z<=.1)rotation=OrbitMath.target(p.lon,rotation);
-    $('#preview-title').textContent=p.title;$('#preview-description').textContent=p.teaser;$('#preview-category').textContent=p.category;$('#preview-number').textContent='0'+(selected+1)+' / 03';$('#preview-art').innerHTML=PreviewArt[p.id];
+    $('#preview-title').textContent=p.title;$('#preview-description').textContent=p.teaser;$('#preview-category').textContent=p.category;$('#preview-number').textContent='0'+(selected+1)+' / '+String(projects.length).padStart(2,'0');$('#preview-art').innerHTML=PreviewArt[p.id];
     $('#preview-features').replaceChildren(...p.features.map(text=>{const item=document.createElement('li');item.textContent=text;return item;}));
     $('#preview-tags').replaceChildren(...p.tags.map(text=>{const item=document.createElement('span');item.textContent=text;return item;}));
-    $('#preview-note').textContent=p.note;$('#preview-open').href=p.page;preview.dataset.project=p.id;preview.style.setProperty('--preview-accent',p.previewAccent||p.bg);
+    $('#preview-note').textContent=p.note;$('#preview-open').href=p.page;$('#preview-open span:first-child').textContent=p.id==='giovanna'?'Как устроена Giovanna':'Исследовать проект';preview.dataset.project=p.id;preview.style.setProperty('--preview-accent',p.previewAccent||p.bg);
     previewConnector.style.setProperty('--connector-accent',p.previewAccent||p.bg);previewConnector.removeAttribute('hidden');
     $('#status').textContent=`Знакомимся · ${p.title}`;if(!preview.open)preview.showModal();
     const source=positionPreview();updatePreviewConnector();
@@ -158,6 +164,20 @@
     clearPreviewVisuals();preview.close();
     hero.classList.add('is-travelling');$('.intro').inert=true;$('#cancel-flight').hidden=false;$('#cancel-flight').focus({preventScroll:true});$('#status').textContent=`Курс на ${p.title}`;
     if(reduced){rotation=target;target=null;remember();location.assign(p.page);}
+    else if(p.id==='giovanna')solarJourney();
+  }
+  async function solarJourney(){
+    const id=transitionId;phase='solar';target=null;remember();$('#status').textContent='Giovanna · открываем солнечную систему';
+    $('#skip-journey').hidden=false;
+    const point=project(projects[selected]);
+    await SolarJourney.play(canvas,{rotation,geometry:{R,CX,CY},landing:{x:(point.x-CX)/R,y:(point.y-CY)/R},onClouds:()=>{
+      if(id!==transitionId)return;
+      curtain.classList.add('is-giovanna-flight');
+      $('#status').textContent='Возвращаемся к Giovanna · входим в облака';curtain.classList.add('is-active');
+      flight=curtain.animate([{opacity:0,transform:'scale(1.7)',backgroundColor:'transparent'},{opacity:.35,offset:.35},{opacity:1,transform:'scale(1)',backgroundColor:'#d6e3cd',offset:.9},{opacity:1,transform:'scale(1)',backgroundColor:'#d6e3cd'}],{duration:850,easing:'ease-in',fill:'forwards'});
+    }});
+    if(id!==transitionId||phase!=='solar')return;
+    $('#skip-journey').hidden=true;try{sessionStorage.setItem('esscale-arrival','yes');}catch{}location.assign(projects[selected].page);
   }
   async function descend(){
     if(selected<0||phase!=='turning')return;phase='descending';const id=transitionId,p=projects[selected],point=project(p);
@@ -173,10 +193,11 @@
     location.assign(p.page);
   }
   function cancel(){
-    if(phase==='idle')return;transitionId++;if(flight)flight.cancel();if(zoom)zoom.cancel();curtain.classList.remove('is-active');
+    curtain.classList.remove('is-giovanna-flight');
+    if(phase==='idle')return;transitionId++;SolarJourney.stop();$('#skip-journey').hidden=true;if(flight)flight.cancel();if(zoom)zoom.cancel();curtain.classList.remove('is-active');
     if(preview.open)preview.close();
     clearPreviewVisuals();
-    target=null;selected=-1;phase='idle';hero.classList.remove('is-travelling');$('.intro').inert=false;$('#cancel-flight').hidden=true;$('#status').textContent='На орбите · 3 проекта';$('#list-toggle').focus({preventScroll:true});
+    target=null;selected=-1;phase='idle';hero.classList.remove('is-travelling');$('.intro').inert=false;$('#cancel-flight').hidden=true;$('#status').textContent='На орбите · 4 проекта';$('#list-toggle').focus({preventScroll:true});
   }
   async function ascend(index){
     if(reduced){remember();return;}
@@ -191,6 +212,7 @@
     if(id!==transitionId)return;cancel();remember();
   }
   function draw(dt){
+    if(phase==='solar')return;
     if(!reduced)time+=dt;
     if(target!==null){turnElapsed+=dt;rotation+=(target-rotation)*Math.min(1,dt*10);if(Math.abs(target-rotation)<.008||turnElapsed>.65){rotation=target;target=null;if(phase==='turning')descend();}}
     else if(!paused&&selected<0&&!drag)rotation+=dt*.10;
@@ -215,9 +237,10 @@
       b.hidden=!visible;b.tabIndex=visible?0:-1;b.classList.toggle('is-target',i===selected);b.classList.toggle('label-left',pt.x*P>hero.clientWidth-195);
       if(visible){b.style.transform=`translate(${Math.round(pt.x)*P}px,${Math.round(pt.y)*P}px)`;b.style.opacity=Math.min(1,(pt.z-.08)*5);b.style.zIndex=String(Math.round(pt.z*100));}
     });
-    updateSpaceActions();
-    if(phase==='preview')updatePreviewConnector();
+    updateSpaceActions();discoveries.draw(ctx,dt);
+    if(phase==='preview'){updatePreviewConnector();const mini=$('.giovanna-preview-world');if(mini)GiovannaPreview.draw(mini,reduced?0:time);}
   }
+  const discoveries=PlanetDiscoveries.create({hero,canvas,pins,projects,geometry:()=>({R,CX,CY,W,H,P}),projectPoint:project,phase:()=>phase,locate:i=>{target=OrbitMath.target(projects[i].lon,rotation);turnElapsed=0;},returned:returnIndex,reduced});
   const planetCanvas=document.createElement('canvas'),planetCtx=planetCanvas.getContext('2d');
   function layout(){if(phase!=='idle')cancel();resize();planetCanvas.width=W;planetCanvas.height=H;draw(0);}addEventListener('resize',layout);layout();setPause(paused);
   if(returnIndex>=0)ascend(returnIndex);
@@ -225,6 +248,7 @@
   function frame(now){const dt=Math.min((now-last)/1000,.05);last=now;if(!document.hidden&&inView)draw(dt);requestAnimationFrame(frame);}requestAnimationFrame(frame);
   function cycleProject(direction){const current=selected>=0?selected:browseIndex;focus(current<0?(direction>0?0:projects.length-1):current+direction);}
   $('#cancel-flight').onclick=cancel;$('#pause').onclick=()=>setPause(!paused);$('#prev').onclick=()=>cycleProject(-1);$('#next').onclick=()=>cycleProject(1);
+  $('#skip-journey').onclick=()=>{if(selected<0)return;const destination=projects[selected].page;transitionId++;SolarJourney.stop();remember();location.assign(destination);};
   addEventListener('keydown',e=>{if(projectList.open)return;if(preview.open){if(e.key==='ArrowRight'){e.preventDefault();cycleProject(1);}if(e.key==='ArrowLeft'){e.preventDefault();cycleProject(-1);}return;}if(e.key==='Escape')cancel();if(!inView||scrollY>innerHeight*.4||e.target.closest('input,textarea,select'))return;if(e.key==='ArrowRight'){e.preventDefault();cycleProject(1);}if(e.key==='ArrowLeft'){e.preventDefault();cycleProject(-1);}if(e.code==='Space'&&!e.target.closest('button,a,summary')){e.preventDefault();setPause(!paused);}});
   hero.addEventListener('pointermove',e=>{if(e.pointerType==='touch')return;const rect=hero.getBoundingClientRect();Constellations.pointer(phase==='idle'?{x:(e.clientX-rect.left)/P,y:(e.clientY-rect.top)/P}:null);if(reduced)return;mouse.x=(e.clientX/rect.width-.5)*2;mouse.y=((e.clientY-rect.top)/rect.height-.5)*1.5;});
   hero.addEventListener('pointerleave',()=>{mouse.x=0;mouse.y=0;Constellations.pointer(null);});
@@ -233,7 +257,7 @@
   canvas.addEventListener('pointerdown',e=>{if(phase!=='idle'||(e.button!==0&&e.pointerType==='mouse'))return;skyTap={x:e.clientX,y:e.clientY};const meteor=meteorAt(e);if(meteor){meteorTap={id:meteor.id,x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId);return;}drag={x:e.clientX,id:e.pointerId};target=null;canvas.setPointerCapture(e.pointerId);canvas.classList.add('dragging');});
   canvas.addEventListener('pointermove',e=>{if(meteorTap){if(Math.hypot(e.clientX-meteorTap.x,e.clientY-meteorTap.y)>10)meteorTap=null;return;}if(!drag){canvas.style.cursor=phase==='idle'&&meteorAt(e)?'crosshair':'';return;}const dx=e.clientX-drag.x;rotation+=dx*.005;drag.x=e.clientX;});
   addEventListener('pagehide',remember);
-  addEventListener('pageshow',e=>{if(e.persisted){const previous=selected;cancel();if(previous>=0)ascend(previous);}});
+  addEventListener('pageshow',e=>{if(e.persisted){const previous=selected;discoveries.visit(previous);cancel();if(previous>=0)ascend(previous);}});
   const release=()=>{drag=null;meteorTap=null;skyTap=null;canvas.classList.remove('dragging');};canvas.addEventListener('pointerup',e=>{if(meteorTap&&phase==='idle'&&Math.hypot(e.clientX-meteorTap.x,e.clientY-meteorTap.y)<=10)SpaceObjects.explode(meteorTap.id);else if(skyTap&&phase==='idle'&&Math.hypot(e.clientX-skyTap.x,e.clientY-skyTap.y)<=10){const rect=canvas.getBoundingClientRect();Constellations.tap((e.clientX-rect.left)/P,(e.clientY-rect.top)/P);}release();});canvas.addEventListener('pointercancel',release);
 })();
 

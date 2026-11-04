@@ -5,12 +5,15 @@ const Esscale = (() => {
     {id:'scandere',page:'pages/project-scandere.html',title:'Scandere',category:'УПРАВЛЕНИЕ ПРОЦЕССАМИ',description:'Система управления компанией и финансового учёта. Математическая модель связывает выручку, прибыль, маржинальность и конверсию.',tags:['297 EP','20 недель','Android · iOS · Windows'],note:'Процессы, сотрудники, склады и финансы',url:'https://esscale.ru/scandere/',bg:'#adc4cf',fg:'#234754',symbol:'▥',lat:.58,lon:.75},
     {id:'gophoto',page:'pages/project-gophoto.html',title:'GoPhoto',category:'ПЛАГИН / LIGHTROOM CLASSIC',description:'Плагин для Lightroom Classic: публикация фотографий в GoPhoto прямо из каталога.',tags:['Lightroom Classic 12+','Версия 0.2.3'],note:'Версия 0.2.3',url:null,bg:'#b6a8c2',fg:'#42334e',symbol:'◫',lat:-.28,lon:2.8}
   ];
+  projects.push({id:'giovanna',page:'pages/project-giovanna.html',title:'Giovanna',category:'ИНТЕРАКТИВНОЕ ПОРТФОЛИО',description:'Планета, на которой живут наши проекты. Интерактивный космос, объёмные карточки и путешествия через облака.',tags:['Canvas · CSS · JavaScript','Без 3D-движка'],note:'Вы сейчас здесь',url:null,bg:'#9edce1',fg:'#163343',previewAccent:'#9edce1',symbol:'◉',lat:-.4,lon:-.1});
   const features={
+    giovanna:['Навигация через живую планету','Интерактивный космос и карточки','Переходы через облака'],
     wearninglords:['Самостоятельный ввод перевода','Закрепление слов в разные дни','Интерфейс на 10 языках'],
     scandere:['Точки, склады и сотрудники','Расчёт выручки, прибыли и конверсии','Учёт смен и зарплат'],
     gophoto:['Установка в Lightroom Classic','Подключение к GoPhoto','Публикация фотоколлекций']
   };
   const teasers={wearninglords:'Тренировка слов, где ответ нужно вспомнить и набрать самостоятельно.',scandere:'Процессы и финансы компании — в одной математической модели.',gophoto:'Публикация фотографий в GoPhoto прямо из Lightroom Classic.'};
+  teasers.giovanna='Планета, на которой живут наши проекты. Вы сейчас внутри одного из них.';
   for(const project of projects){project.features=features[project.id];project.teaser=teasers[project.id];if(project.id==='gophoto')project.previewAccent='#38BDF8';}
   const groups = [
     {id:'server',title:'Серверная часть',subtitle:'Логика, данные, инфраструктура',items:[

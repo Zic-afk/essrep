@@ -25,5 +25,5 @@ for(const name of fs.readdirSync(path.join(root,'css'))){
   for(const [,ref] of text.matchAll(/url\(['"]?([^)'"\s]+)['"]?\)/g))check(ref,source);
 }
 for(const project of require('../js/data.js').projects)check(project.page,'index.html');
-assert.equal(documents.length,5);
+assert.equal(documents.length,6);
 console.log(`Paths passed: ${documents.length} HTML pages, CSS assets, project destinations, anchors; ${count} local references.`);
