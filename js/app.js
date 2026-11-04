@@ -14,6 +14,15 @@
   if(returnIndex>=0){rotation=OrbitMath.target(projects[returnIndex].lon,rotation);entryUrl.searchParams.delete('orbit');entryUrl.searchParams.delete('project');history.replaceState(history.state,'',entryUrl.href);}
   const mouse={x:0,y:0},parallax={x:0,y:0},hero=$('#home');
   const projectList=$('#project-list');
+  const preview=$('#project-preview');
+  const previewConnector=$('#preview-connector');
+  let previewMotion=null,previewContentMotion=null,previewClosing=false;
+  const previewTilt=CardTilt.attach(preview,$('.preview-surface'),()=>phase==='preview'&&!previewClosing&&(!previewMotion||previewMotion.playState!=='running'));
+  $('#preview-close').onclick=hidePreview;
+  preview.addEventListener('cancel',event=>{event.preventDefault();hidePreview();});
+  preview.addEventListener('click',event=>{if(event.target!==preview)return;const rect=preview.getBoundingClientRect();if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)hidePreview();});
+  preview.addEventListener('close',()=>{clearPreviewVisuals();if(phase==='preview'){selected=-1;phase='idle';$('#status').textContent='На орбите · 3 проекта';$('#list-toggle').focus({preventScroll:true});}});
+  $('#preview-open').onclick=event=>{if(event.button||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;event.preventDefault();launch();};
   const spaceActions=document.createElement('div');spaceActions.className='space-actions';spaceActions.setAttribute('role','group');spaceActions.setAttribute('aria-label','Интерактивные объекты космоса');hero.append(spaceActions);
   const actionButtons=new Map();
   function updateSpaceActions(){
@@ -34,6 +43,7 @@
   }
   $('#list-toggle').onclick=()=>projectList.showModal();
   $('#list-close').onclick=()=>projectList.close();
+  projectList.querySelectorAll('a').forEach((link,index)=>{link.onclick=event=>{if(event.button||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;event.preventDefault();projectList.close();focus(index);};});
   const tilt=.27,ct=Math.cos(tilt),st=Math.sin(tilt),tau=Math.PI*2;
   const texture=new Uint8ClampedArray(256*128*3);
   const clouds=new Uint8Array(256*128);
@@ -54,8 +64,8 @@
   curtain.innerHTML='<div class="cloud-bank cloud-bank-a"></div><div class="cloud-bank cloud-bank-b"></div><div class="cloud-core"></div>';document.body.append(curtain);
   const pins=projects.map((p,i)=>{
     const b=document.createElement('a');b.className='beacon';b.href=p.page;
-    b.innerHTML=`<span class="beacon-ring" aria-hidden="true"></span><span class="beacon-dot" aria-hidden="true"></span><span class="beacon-label"><small>0${i+1} / ПРОЕКТ</small>${p.title}<span class="beacon-preview">${p.tags[0]}<br>Войти в атмосферу ↗</span></span>`;
-    b.setAttribute('aria-label',`Открыть проект ${p.title}`);b.onclick=e=>{if(e.button||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;e.preventDefault();focus(i);};$('#pins').append(b);return b;
+    b.innerHTML=`<span class="beacon-ring" aria-hidden="true"></span><span class="beacon-dot" aria-hidden="true"></span><span class="beacon-label"><small>0${i+1} / ПРОЕКТ</small>${p.title}<span class="beacon-preview">${p.tags[0]}<br>Описание и функции ↗</span></span>`;
+    b.setAttribute('aria-label',`О проекте ${p.title}`);b.setAttribute('aria-haspopup','dialog');b.onclick=e=>{if(e.button||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;e.preventDefault();focus(i);};$('#pins').append(b);return b;
   });
   function resize(){
     P=innerWidth<750?3:4;W=Math.ceil(hero.clientWidth/P);H=Math.ceil(hero.clientHeight/P);canvas.width=W;canvas.height=H;canvas.style.width=W*P+'px';canvas.style.height=H*P+'px';
@@ -81,10 +91,69 @@
   function project(p){return OrbitMath.project(p,rotation,{R,CX,CY});}
   function setPause(value){paused=value;$('#pause').textContent=paused?'▷':'Ⅱ';$('#pause').setAttribute('aria-label',paused?'Продолжить вращение':'Приостановить вращение');$('#pause').setAttribute('aria-pressed',String(paused));}
   function remember(){try{sessionStorage.setItem('esscale-orbit',JSON.stringify({rotation}));}catch{}}
+  function clearPreviewVisuals(){
+    previewTilt.reset();
+    if(previewMotion)previewMotion.cancel();if(previewContentMotion)previewContentMotion.cancel();previewClosing=false;previewConnector.setAttribute('hidden','');hero.classList.remove('has-preview');hero.style.removeProperty('--preview-shift');
+  }
+  function previewPoint(){const point=project(projects[selected]),rect=canvas.getBoundingClientRect();return {x:rect.left+point.x*P,y:rect.top+point.y*P};}
+  function positionPreview(){
+    const point=project(projects[selected]),scene=hero.getBoundingClientRect(),mobile=innerWidth<750;
+    const source={x:scene.left+point.x*P,y:scene.top+point.y*P};
+    hero.classList.add('has-preview');hero.style.setProperty('--preview-shift',mobile?-Math.min(innerHeight*.35,Math.max(0,source.y-innerHeight*.26))+'px':'0px');
+    const width=preview.offsetWidth,height=preview.offsetHeight;
+    const desiredX=source.x+40+width<innerWidth-24?source.x+40:source.x-width-40;
+    const x=mobile?12:Math.max(24,Math.min(innerWidth-width-24,desiredX));
+    const maxY=Math.max(12,innerHeight-height-12),minY=Math.min(88,maxY);
+    const y=mobile?maxY:Math.max(minY,Math.min(maxY,source.y-height*.44));
+    preview.style.left=Math.round(x)+'px';preview.style.top=Math.round(y)+'px';$('.preview-surface').scrollTop=0;
+    return source;
+  }
+  function updatePreviewConnector(){
+    if(!preview.open||selected<0)return;
+    const point=previewPoint(),rect=preview.getBoundingClientRect(),mobile=innerWidth<750;
+    previewConnector.setAttribute('viewBox',`0 0 ${innerWidth} ${innerHeight}`);
+    let path;
+    if(mobile){const endX=Math.max(rect.left+24,Math.min(rect.right-24,point.x)),elbow=rect.top-16;path=`M ${point.x} ${point.y} V ${elbow} H ${endX} V ${rect.top}`;}
+    else{const endX=point.x<rect.left?rect.left:rect.right,endY=Math.max(rect.top+45,Math.min(rect.bottom-45,point.y)),elbow=(point.x+endX)/2;path=`M ${point.x} ${point.y} H ${elbow} V ${endY} H ${endX}`;}
+    $('#preview-line').setAttribute('d',path);$('#preview-ring').setAttribute('cx',point.x);$('#preview-ring').setAttribute('cy',point.y);$('#preview-origin').setAttribute('x',point.x-4);$('#preview-origin').setAttribute('y',point.y-4);
+  }
+  async function hidePreview(){
+    if(!preview.open||previewClosing)return;previewClosing=true;
+    previewTilt.leave();
+    if(previewMotion)previewMotion.cancel();if(previewContentMotion)previewContentMotion.cancel();
+    if(!reduced&&selected>=0){
+      const point=previewPoint(),rect=preview.getBoundingClientRect(),transform=innerWidth<750?`translate(0,${rect.height+24}px)`:`translate(${point.x-rect.left-rect.width/2}px,${point.y-rect.top-rect.height/2}px) scale(.12,.06)`;
+      previewMotion=preview.animate([{transform:'translate(0,0) scale(1)',opacity:1},{transform,opacity:0}],{duration:250,easing:'ease-in',fill:'forwards'});
+      try{await previewMotion.finished;}catch{return;}
+    }
+    preview.close();
+  }
   function focus(i){
-    if(phase!=='idle')return;
+    if(phase!=='idle'&&phase!=='preview')return;
+    previewTilt.reset();
+    if(previewMotion)previewMotion.cancel();if(previewContentMotion)previewContentMotion.cancel();previewClosing=false;
     selected=(i+projects.length)%projects.length;const p=projects[selected];
+    phase='preview';target=null;
+    if(project(p).z<=.1)rotation=OrbitMath.target(p.lon,rotation);
+    $('#preview-title').textContent=p.title;$('#preview-description').textContent=p.teaser;$('#preview-category').textContent=p.category;$('#preview-number').textContent='0'+(selected+1)+' / 03';$('#preview-art').innerHTML=PreviewArt[p.id];
+    $('#preview-features').replaceChildren(...p.features.map(text=>{const item=document.createElement('li');item.textContent=text;return item;}));
+    $('#preview-tags').replaceChildren(...p.tags.map(text=>{const item=document.createElement('span');item.textContent=text;return item;}));
+    $('#preview-note').textContent=p.note;$('#preview-open').href=p.page;preview.style.setProperty('--preview-accent',p.bg);
+    previewConnector.style.setProperty('--connector-accent',p.bg);previewConnector.removeAttribute('hidden');
+    $('#status').textContent=`Знакомимся · ${p.title}`;if(!preview.open)preview.showModal();
+    const source=positionPreview();updatePreviewConnector();
+    if(!reduced){
+      const rect=preview.getBoundingClientRect(),dx=source.x-rect.left-rect.width/2,dy=source.y-rect.top-rect.height/2;
+      const frames=innerWidth<750?[{transform:'translateY(65px) scale(.97)',opacity:0},{transform:'translateY(0) scale(1)',opacity:1}]:[{transform:`translate(${dx}px,${dy}px) scale(.12,.06)`,opacity:0},{transform:'translate(0,0) scale(1,.08)',opacity:1,offset:.42},{transform:'translate(0,0) scale(1)',opacity:1}];
+      previewMotion=preview.animate(frames,{duration:480,easing:'cubic-bezier(.2,.7,.2,1)'});
+      previewMotion.finished.then(()=>previewTilt.refresh(),()=>{});
+      previewContentMotion=$('.preview-content').animate([{opacity:0,transform:'translateY(6px)'},{opacity:1,transform:'translateY(0)'}],{duration:230,delay:170,fill:'backwards'});
+    }
+  }
+  function launch(){
+    if(phase!=='preview'||selected<0)return;const p=projects[selected];
     target=OrbitMath.target(p.lon,rotation);phase='turning';turnElapsed=0;transitionId++;
+    clearPreviewVisuals();preview.close();
     hero.classList.add('is-travelling');$('.intro').inert=true;$('#cancel-flight').hidden=false;$('#cancel-flight').focus({preventScroll:true});$('#status').textContent=`Курс на ${p.title}`;
     if(reduced){rotation=target;target=null;remember();location.assign(p.page);}
   }
@@ -103,6 +172,8 @@
   }
   function cancel(){
     if(phase==='idle')return;transitionId++;if(flight)flight.cancel();if(zoom)zoom.cancel();curtain.classList.remove('is-active');
+    if(preview.open)preview.close();
+    clearPreviewVisuals();
     target=null;selected=-1;phase='idle';hero.classList.remove('is-travelling');$('.intro').inert=false;$('#cancel-flight').hidden=true;$('#status').textContent='На орбите · 3 проекта';$('#list-toggle').focus({preventScroll:true});
   }
   async function ascend(index){
@@ -143,6 +214,7 @@
       if(visible){b.style.transform=`translate(${Math.round(pt.x)*P}px,${Math.round(pt.y)*P}px)`;b.style.opacity=Math.min(1,(pt.z-.08)*5);b.style.zIndex=String(Math.round(pt.z*100));}
     });
     updateSpaceActions();
+    if(phase==='preview')updatePreviewConnector();
   }
   const planetCanvas=document.createElement('canvas'),planetCtx=planetCanvas.getContext('2d');
   function layout(){if(phase!=='idle')cancel();resize();planetCanvas.width=W;planetCanvas.height=H;draw(0);}addEventListener('resize',layout);layout();setPause(paused);
@@ -150,7 +222,7 @@
   let inView=true;new IntersectionObserver(entries=>{inView=entries[0].isIntersecting;},{threshold:0}).observe($('#home'));
   function frame(now){const dt=Math.min((now-last)/1000,.05);last=now;if(!document.hidden&&inView)draw(dt);requestAnimationFrame(frame);}requestAnimationFrame(frame);
   $('#cancel-flight').onclick=cancel;$('#pause').onclick=()=>setPause(!paused);$('#prev').onclick=()=>focus(selected<0?0:selected-1);$('#next').onclick=()=>focus(selected<0?0:selected+1);
-  addEventListener('keydown',e=>{if(projectList.open)return;if(e.key==='Escape')cancel();if(!inView||scrollY>innerHeight*.4||e.target.closest('input,textarea,select'))return;if(e.key==='ArrowRight'){e.preventDefault();focus(selected<0?0:selected+1);}if(e.key==='ArrowLeft'){e.preventDefault();focus(selected<0?0:selected-1);}if(e.code==='Space'&&!e.target.closest('button,a,summary')){e.preventDefault();setPause(!paused);}});
+  addEventListener('keydown',e=>{if(projectList.open)return;if(preview.open){if(e.key==='ArrowRight'){e.preventDefault();focus(selected+1);}if(e.key==='ArrowLeft'){e.preventDefault();focus(selected-1);}return;}if(e.key==='Escape')cancel();if(!inView||scrollY>innerHeight*.4||e.target.closest('input,textarea,select'))return;if(e.key==='ArrowRight'){e.preventDefault();focus(selected<0?0:selected+1);}if(e.key==='ArrowLeft'){e.preventDefault();focus(selected<0?0:selected-1);}if(e.code==='Space'&&!e.target.closest('button,a,summary')){e.preventDefault();setPause(!paused);}});
   hero.addEventListener('pointermove',e=>{if(e.pointerType==='touch')return;const rect=hero.getBoundingClientRect();Constellations.pointer(phase==='idle'?{x:(e.clientX-rect.left)/P,y:(e.clientY-rect.top)/P}:null);if(reduced)return;mouse.x=(e.clientX/rect.width-.5)*2;mouse.y=((e.clientY-rect.top)/rect.height-.5)*1.5;});
   hero.addEventListener('pointerleave',()=>{mouse.x=0;mouse.y=0;Constellations.pointer(null);});
   let meteorTap=null,skyTap=null;
