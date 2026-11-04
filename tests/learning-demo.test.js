@@ -1,0 +1,14 @@
+const assert=require('node:assert/strict'),{grade}=require('../js/learning-demo.js');
+const kind=(value,answers,english=false)=>grade(value,answers,english).kind;
+assert.equal(kind('', ['remember'],true),'empty');
+assert.equal(kind('  REMEMBER  ',['remember'],true),'correct');
+assert.equal(kind('to remember (verb)', ['remember'],true),'correct');
+assert.equal(kind('помнить',['помнить','запоминать']),'partial');
+assert.equal(kind('запоминать; помнить',['помнить','запоминать']),'correct');
+assert.equal(kind('помнить, помнить',['помнить','запоминать']),'partial');
+assert.equal(kind('remeber',['remember'],true),'typo');
+assert.equal(kind('rmemberx',['remember'],true),'wrong');
+assert.equal(kind('cot',['cat'],true),'wrong');
+assert.equal(kind('remember, forget',['remember'],true),'wrong');
+assert.equal(kind('ёлка',['елка']),'correct');
+console.log('Learning demo: correct, partial, typo, empty and wrong answers verified.');

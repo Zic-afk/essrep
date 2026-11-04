@@ -3,15 +3,15 @@ const Esscale = (() => {
   const projects = [
     {id:'wearninglords',page:'pages/project-wearninglords.html',title:'WearningLords',category:'ПРИЛОЖЕНИЕ / ИЗУЧЕНИЕ СЛОВ',description:'Изучение слов с вводом ответа. Чтобы закрепить слово, нужно ответить верно в три разных дня без ошибок между ними.',tags:['iPhone · iPad · Mac','10 языков'],note:'Скоро в App Store',url:'https://esscale.ru/wearninglords/',bg:'#bbc9a1',fg:'#263c2a',symbol:'Aa',lat:.25,lon:-.6},
     {id:'scandere',page:'pages/project-scandere.html',title:'Scandere',category:'УПРАВЛЕНИЕ ПРОЦЕССАМИ',description:'Система управления компанией и финансового учёта. Математическая модель связывает выручку, прибыль, маржинальность и конверсию.',tags:['297 EP','20 недель','Android · iOS · Windows'],note:'Процессы, сотрудники, склады и финансы',url:'https://esscale.ru/scandere/',bg:'#adc4cf',fg:'#234754',symbol:'▥',lat:.58,lon:.75},
-    {id:'gophoto',page:'pages/project-gophoto.html',title:'GoPhoto',category:'ВЕБ-СЕРВИС / ФОТОСЪЁМКА',description:'Сервис для фотостудий: загрузка съёмки, обработка фотографий и выдача готовых галерей в одном процессе.',tags:['Сервер + 2 веб-приложения','1000+ автотестов'],note:'В разработке',url:null,bg:'#b6a8c2',fg:'#42334e',symbol:'◫',lat:-.28,lon:2.8}
+    {id:'gophoto',page:'pages/project-gophoto.html',title:'GoPhoto',category:'ПЛАГИН / LIGHTROOM CLASSIC',description:'Плагин для Lightroom Classic: публикация фотографий в GoPhoto прямо из каталога.',tags:['Lightroom Classic 12+','Версия 0.2.3'],note:'Версия 0.2.3',url:null,bg:'#b6a8c2',fg:'#42334e',symbol:'◫',lat:-.28,lon:2.8}
   ];
   const features={
     wearninglords:['Самостоятельный ввод перевода','Закрепление слов в разные дни','Интерфейс на 10 языках'],
     scandere:['Точки, склады и сотрудники','Расчёт выручки, прибыли и конверсии','Учёт смен и зарплат'],
-    gophoto:['Загрузка съёмки','Обработка фотографий','Выдача готовых галерей']
+    gophoto:['Установка в Lightroom Classic','Подключение к GoPhoto','Публикация фотоколлекций']
   };
-  const teasers={wearninglords:'Тренировка слов, где ответ нужно вспомнить и набрать самостоятельно.',scandere:'Процессы и финансы компании — в одной математической модели.',gophoto:'От загрузки съёмки до готовой галереи — единый процесс для фотостудии.'};
-  for(const project of projects){project.features=features[project.id];project.teaser=teasers[project.id];}
+  const teasers={wearninglords:'Тренировка слов, где ответ нужно вспомнить и набрать самостоятельно.',scandere:'Процессы и финансы компании — в одной математической модели.',gophoto:'Публикация фотографий в GoPhoto прямо из Lightroom Classic.'};
+  for(const project of projects){project.features=features[project.id];project.teaser=teasers[project.id];if(project.id==='gophoto')project.previewAccent='#38BDF8';}
   const groups = [
     {id:'server',title:'Серверная часть',subtitle:'Логика, данные, инфраструктура',items:[
       ['core','Ядро сервера','Архитектура, бизнес-логика, структуры данных',24],['network','Сетевой слой','HTTP, WebSocket, разбор форматов',19],['database','База данных','Схема, процедуры, оптимизация запросов',20],['scale','Масштабирование','Репликация, кэширование, живые обновления',23],['accounts','Учётные записи','Регистрация, вход, хранение паролей',9],['security','Защита','SSL, защита от SQL-инъекций, перебора паролей и всплесков запросов',19],['media','Медиа и статика','Загрузка, хранение, раздача файлов',10],['infra','Инфраструктура','Docker, Nginx, сборка, развёртывание',13]]},

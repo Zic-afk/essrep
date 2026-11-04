@@ -96,13 +96,12 @@ const delay=ms=>new Promise(r=>setTimeout(r,ms));
    assert.ok(await evaluate("(()=>{const r=document.querySelector('#project-preview').getBoundingClientRect();return r.left>=0&&r.right<=innerWidth+1&&r.top>=0&&r.bottom<=innerHeight+1})()"),'Mini card remains in small viewport');
    await evaluate("document.querySelector('#preview-close').click()");await waitFor("!document.querySelector('#project-preview').open");
  }
- await send('Page.navigate',{url:new URL('pages/project-gophoto.html',rootUrl).href});await waitFor("document.querySelector('h1')?.textContent==='GoPhoto'");
- await evaluate('document.fonts.ready');assert.ok(await evaluate("[...document.fonts].some(font=>font.family==='Orbit Pixel'&&font.status==='loaded')"),'Nested page font loaded');
+ await send('Page.navigate',{url:new URL('pages/project-gophoto.html',rootUrl).href});await waitFor("document.body.dataset.project==='gophoto'&&!!document.querySelector('.gp-hero')");
+ await evaluate('document.fonts.ready');assert.ok(await evaluate("getComputedStyle(document.body).fontFamily.includes('Arial')"),'GoPhoto uses the restored cyan template typography');
  await evaluate("document.querySelector('.back-orbit').click()");await waitFor("location.pathname.endsWith('index.html')&&document.querySelectorAll('.beacon').length===3");
  await evaluate("document.querySelector('#cancel-flight').click()");
  assert.ok(await evaluate("!document.querySelector('#home').classList.contains('is-travelling')&&document.querySelector('#space').getAnimations().length===0"),'Reverse flight can be skipped');
- await send('Page.navigate',{url:new URL('pages/project-gophoto.html',rootUrl).href});await waitFor("document.querySelector('h1')?.textContent==='GoPhoto'");
- await evaluate("document.querySelector('.project-next a:last-child').click()");await waitFor("document.querySelector('h1')?.textContent==='WearningLords'");
+ await send('Page.navigate',{url:new URL('pages/project-wearninglords.html',rootUrl).href});await waitFor("document.body.dataset.project==='wearninglords'");
  await evaluate("document.querySelector('.site-footer a:last-child').click()");await waitFor("location.pathname.endsWith('/pages/calculator.html')&&document.querySelectorAll('#estimate-form input').length===16");
  assert.deepEqual(failedAssets,[],'No failed scripts, stylesheets, fonts or images');
  assert.deepEqual(errors,[],'No browser JS exceptions');

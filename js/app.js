@@ -138,8 +138,8 @@
     $('#preview-title').textContent=p.title;$('#preview-description').textContent=p.teaser;$('#preview-category').textContent=p.category;$('#preview-number').textContent='0'+(selected+1)+' / 03';$('#preview-art').innerHTML=PreviewArt[p.id];
     $('#preview-features').replaceChildren(...p.features.map(text=>{const item=document.createElement('li');item.textContent=text;return item;}));
     $('#preview-tags').replaceChildren(...p.tags.map(text=>{const item=document.createElement('span');item.textContent=text;return item;}));
-    $('#preview-note').textContent=p.note;$('#preview-open').href=p.page;preview.style.setProperty('--preview-accent',p.bg);
-    previewConnector.style.setProperty('--connector-accent',p.bg);previewConnector.removeAttribute('hidden');
+    $('#preview-note').textContent=p.note;$('#preview-open').href=p.page;preview.dataset.project=p.id;preview.style.setProperty('--preview-accent',p.previewAccent||p.bg);
+    previewConnector.style.setProperty('--connector-accent',p.previewAccent||p.bg);previewConnector.removeAttribute('hidden');
     $('#status').textContent=`Знакомимся · ${p.title}`;if(!preview.open)preview.showModal();
     const source=positionPreview();updatePreviewConnector();
     if(!reduced){

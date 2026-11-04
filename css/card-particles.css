@@ -1,0 +1,10 @@
+.learning-page{background:linear-gradient(155deg,#f0fdf4,#fff 90%);background-attachment:fixed;overflow-anchor:none}
+.learning-hero .hero-playground{min-width:0;width:100%;max-width:520px;margin-inline:auto}
+.learning-hero .hero-orbit,.learning-hero .floating-plus{display:none}
+.demo-tilt{position:relative;width:min(100%,460px);margin:auto;transform:rotateX(var(--garden-tilt-x,0deg)) rotateY(var(--garden-tilt-y,0deg)) scale(var(--garden-tilt-scale,1));transform-style:preserve-3d;will-change:transform}
+.demo-turner{position:relative;transform-style:preserve-3d;transform:rotateY(0deg)}
+.demo-turner>.demo-card,.demo-turner>.demo-card:hover,.demo-turner>.demo-card:focus-within{width:100%;max-width:none;margin:0;min-height:520px;transform:rotateY(var(--card-face,0deg));backface-visibility:hidden;-webkit-backface-visibility:hidden;transform-style:preserve-3d}
+.demo-turner>.demo-card-snapshot{pointer-events:none!important}
+.card-particle-frame{position:absolute;left:-16px;top:-16px;width:calc(100% + 32px);height:calc(100% + 32px);pointer-events:none;transform:translateZ(-2px)}
+@media(max-width:760px){.learning-hero .hero-playground{max-width:470px}.learning-hero{row-gap:45px}.demo-turner>.demo-card{min-height:520px}}
+@media(prefers-reduced-motion:reduce){.demo-tilt{transform:none;will-change:auto}}

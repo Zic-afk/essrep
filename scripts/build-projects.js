@@ -8,6 +8,9 @@ const stories={
 };
 const escape=s=>String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('"','&quot;');
 projects.forEach((p,i)=>{const s=stories[p.id],next=projects[(i+1)%projects.length];
+// Individually designed project pages keep their own markup and styles.
+const existing=path.join(root,p.page);
+if(fs.existsSync(existing)&&fs.readFileSync(existing,'utf8').includes('<!-- custom-project-page -->'))return;
 const cover=p.id==='scandere'?'<span class="cover-symbol cover-chart" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>':`<span class="cover-symbol" aria-hidden="true">${s.symbol}</span>`;
 fs.writeFileSync(path.join(root,p.page),`<!doctype html>
 <html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#080e19"><meta name="description" content="${escape(p.description)}"><title>${p.title} — проект ESSCALE</title><link rel="icon" href="../assets/favicon.svg"><link rel="stylesheet" href="../css/style.css"><link rel="stylesheet" href="../css/pixel-design.css"><link rel="stylesheet" href="../css/orbit.css"><script src="../js/project-page.js" defer></script></head>
@@ -16,4 +19,4 @@ fs.writeFileSync(path.join(root,p.page),`<!doctype html>
 <div class="project-facts">${s.facts.map(([k,v])=>`<div><span>${k}</span>${v}</div>`).join('')}</div>
 <section class="project-story"><div><h2>${s.heading}</h2><p>${s.body}</p></div><div><h2>${s.second}</h2><ul>${s.items.map(t=>`<li>${t}</li>`).join('')}</ul></div></section>
 <div class="project-actions"><a class="primary-link" href="https://t.me/sborka_esscale?text=${encodeURIComponent('Здравствуйте! Хочу обсудить проект, похожий на '+p.title+'.')}" target="_blank" rel="noopener">Обсудить похожую задачу ↗</a>${p.url?`<a href="${p.url}" target="_blank" rel="noopener">Проект на действующем сайте ↗</a>`:''}</div><nav class="project-next" aria-label="Следующий проект"><a href="../index.html?orbit=return#home">← Вернуться к планете</a><a href="${path.basename(next.page)}">Далее: ${next.title} →</a></nav></main><footer class="site-footer"><a class="brand" href="../index.html?orbit=return#home">✦ ESSCALE</a><span>© 2026 ESSCALE</span><a href="calculator.html">Рассчитать проект ↗</a></footer></body></html>`,'utf8');
-});console.log('Built 3 static project pages.');
+});console.log('Built shared project pages; individual designs preserved.');

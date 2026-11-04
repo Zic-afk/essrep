@@ -17,3 +17,22 @@
 .preview-surface:after{content:'';position:absolute;inset:0;pointer-events:none;z-index:3;background:radial-gradient(ellipse at var(--tilt-light-x,50%) var(--tilt-light-y,50%),#ffffff0d,transparent 62%),linear-gradient(125deg,#ffffff07,transparent 40%,#ffffff02);opacity:var(--tilt-shine,0);border:1px solid #ffffff16}
 .preview-surface .preview-head{background:#18303ad9}.preview-surface .preview-art{box-shadow:inset 0 1px 0 #ffffff40}
 @media(prefers-reduced-motion:reduce){.preview-surface{transform:none;will-change:auto}.preview-surface:after{display:none}}
+
+/* GoPhoto: deep navy, sky-blue accents and white typography. */
+.project-preview[data-project="gophoto"]{color:#fff}
+.project-preview[data-project="gophoto"] .preview-surface{background:#0B192E;scrollbar-color:#38BDF8 #0B192E;border-color:#38BDF8}
+.project-preview[data-project="gophoto"] .preview-head{background:#0B192E;border-bottom-color:#38BDF855}
+.project-preview[data-project="gophoto"] .preview-art{background:linear-gradient(135deg,#0B192E,#123E61);color:#fff;border-bottom-color:#0369A1}
+.project-preview[data-project="gophoto"] :is(h2,.eyebrow,.preview-number,.preview-content>p,.preview-features h3,.preview-features li,.preview-tags span,.preview-note,.preview-flight-hint,.preview-head button){color:#fff;opacity:1}
+.project-preview[data-project="gophoto"] .preview-features{border-color:#38BDF844}
+.project-preview[data-project="gophoto"] .preview-features li:before{color:#38BDF8}
+.project-preview[data-project="gophoto"] .preview-tags span+span:before{color:#38BDF8}
+.project-preview[data-project="gophoto"] .preview-head button{border-color:#38BDF877}
+.project-preview[data-project="gophoto"] .preview-head button:hover{background:#0369A1}
+.project-preview[data-project="gophoto"] .primary-link{background:#0369A1;color:#fff;border-bottom-color:#0C4A6E}
+.project-preview[data-project="gophoto"] .primary-link:hover{background:#38BDF8;filter:none}
+.project-preview[data-project="gophoto"] .sample-photos i{border-color:#38BDF8;background:#102B45;box-shadow:2px 2px #0004}
+.project-preview[data-project="gophoto"] .sample-photos i:before{background:#0369A1}
+.project-preview[data-project="gophoto"] .sample-photos i:after{background:#fff}
+.project-preview[data-project="gophoto"] .sample-photos i:nth-child(even){background:#0C4A6E}
+.project-preview[data-project="gophoto"] .sample-photos i:nth-child(even):before{background:#38BDF8}
