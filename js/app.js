@@ -14,6 +14,24 @@
   if(returnIndex>=0){rotation=OrbitMath.target(projects[returnIndex].lon,rotation);entryUrl.searchParams.delete('orbit');entryUrl.searchParams.delete('project');history.replaceState(history.state,'',entryUrl.href);}
   const mouse={x:0,y:0},parallax={x:0,y:0},hero=$('#home');
   const projectList=$('#project-list');
+  const spaceActions=document.createElement('div');spaceActions.className='space-actions';spaceActions.setAttribute('role','group');spaceActions.setAttribute('aria-label','Интерактивные объекты космоса');hero.append(spaceActions);
+  const actionButtons=new Map();
+  function updateSpaceActions(){
+    const actions=[...SpaceObjects.signalTargets(),...Constellations.targets().map(t=>({...t,id:'constellation-'+t.index,label:'Созвездие «'+t.name+'»'}))];
+    const present=new Set();
+    for(const action of actions){
+      present.add(action.id);let button=actionButtons.get(action.id);
+      if(!button){button=document.createElement('button');button.className='space-action';button.type='button';button.dataset.action=action.id;button.setAttribute('aria-label',action.label);button.dataset.label=action.label;
+        const activate=()=>{if(phase!=='idle')return;if(action.id.startsWith('signal-'))SpaceObjects.signal(action.id);else Constellations.activate(Number(action.id.split('-')[1]));};
+        button.onclick=activate;button.onfocus=()=>{if(action.id.startsWith('constellation-'))activate();};spaceActions.append(button);actionButtons.set(action.id,button);
+      }
+      if(button.dataset.label!==action.label){button.dataset.label=action.label;button.setAttribute('aria-label',action.label);}
+      const outside=(action.x-CX)**2+(action.y-CY)**2>(R+4)**2;
+      button.hidden=phase!=='idle'||!outside||action.x<5||action.x>W-5||action.y<5||action.y>H-5;
+      button.style.transform=`translate(${Math.round(action.x)*P}px,${Math.round(action.y)*P}px) translate(-50%,-50%)`;
+    }
+    for(const [id,button] of actionButtons)if(!present.has(id))button.hidden=true;
+  }
   $('#list-toggle').onclick=()=>projectList.showModal();
   $('#list-close').onclick=()=>projectList.close();
   const tilt=.27,ct=Math.cos(tilt),st=Math.sin(tilt),tau=Math.PI*2;
@@ -108,7 +126,8 @@
     ctx.drawImage(nebula,Math.round(parallax.x),Math.round(parallax.y));
     // Sparse, layered pixel stars and a small orbital satellite.
     for(const s of stars){const speed=[.2,.8,1.8][s.layer];let x=(s.x*W-time*speed+parallax.x*(s.layer+1))%W;if(x<0)x+=W;const y=s.y*H+parallax.y*(s.layer+1);ctx.fillStyle=s.layer===2?'#c7d9bc':s.layer===1?'#6d8995':'#344855';if(reduced||Math.sin(time*.7+s.phase)>-.8)ctx.fillRect(Math.floor(x),Math.floor(y),1,1);if(s.b>.98&&s.layer===2){ctx.fillRect(Math.floor(x)-1,Math.floor(y),3,1);ctx.fillRect(Math.floor(x),Math.floor(y)-1,1,3);}}
-    SpaceObjects.draw(ctx,{width:W,height:H,time,parallax,mobile:innerWidth<750,reduced});
+    Constellations.draw(ctx,{width:W,height:H,dt,mobile:innerWidth<750,reduced,parallax});
+    SpaceObjects.draw(ctx,{width:W,height:H,time,parallax,mobile:innerWidth<750,reduced,dt,planet:{R,CX,CY}});
     ctx.drawImage(atmosphere,0,0);
     // Draw only the visible hemisphere into a transparent pixel buffer.
     const data=image.data;
@@ -117,11 +136,13 @@
       data[i]=texture[ti]*shade*(1-cloudMix)+180*cloudMix+(rim?23:0);data[i+1]=texture[ti+1]*shade*(1-cloudMix)+202*cloudMix+(rim?35:0);data[i+2]=texture[ti+2]*shade*(1-cloudMix)+174*cloudMix+(rim?26:0);data[i+3]=255;}
     // putImageData replaces the background, so composite through an offscreen surface.
     planetCtx.putImageData(image,0,0);ctx.drawImage(planetCanvas,0,0);
+    SpaceObjects.drawForeground();
     pins.forEach((b,i)=>{
       const pt=project(projects[i]),visible=pt.z>.08&&phase!=='descending'&&phase!=='ascending';
       b.hidden=!visible;b.tabIndex=visible?0:-1;b.classList.toggle('is-target',i===selected);b.classList.toggle('label-left',pt.x*P>hero.clientWidth-195);
       if(visible){b.style.transform=`translate(${Math.round(pt.x)*P}px,${Math.round(pt.y)*P}px)`;b.style.opacity=Math.min(1,(pt.z-.08)*5);b.style.zIndex=String(Math.round(pt.z*100));}
     });
+    updateSpaceActions();
   }
   const planetCanvas=document.createElement('canvas'),planetCtx=planetCanvas.getContext('2d');
   function layout(){if(phase!=='idle')cancel();resize();planetCanvas.width=W;planetCanvas.height=H;draw(0);}addEventListener('resize',layout);layout();setPause(paused);
@@ -130,13 +151,15 @@
   function frame(now){const dt=Math.min((now-last)/1000,.05);last=now;if(!document.hidden&&inView)draw(dt);requestAnimationFrame(frame);}requestAnimationFrame(frame);
   $('#cancel-flight').onclick=cancel;$('#pause').onclick=()=>setPause(!paused);$('#prev').onclick=()=>focus(selected<0?0:selected-1);$('#next').onclick=()=>focus(selected<0?0:selected+1);
   addEventListener('keydown',e=>{if(projectList.open)return;if(e.key==='Escape')cancel();if(!inView||scrollY>innerHeight*.4||e.target.closest('input,textarea,select'))return;if(e.key==='ArrowRight'){e.preventDefault();focus(selected<0?0:selected+1);}if(e.key==='ArrowLeft'){e.preventDefault();focus(selected<0?0:selected-1);}if(e.code==='Space'&&!e.target.closest('button,a,summary')){e.preventDefault();setPause(!paused);}});
-  hero.addEventListener('pointermove',e=>{if(reduced||e.pointerType==='touch')return;const rect=hero.getBoundingClientRect();mouse.x=(e.clientX/rect.width-.5)*2;mouse.y=((e.clientY-rect.top)/rect.height-.5)*1.5;});
-  hero.addEventListener('pointerleave',()=>{mouse.x=0;mouse.y=0;});
-  canvas.addEventListener('pointerdown',e=>{if(phase!=='idle')return;drag={x:e.clientX,id:e.pointerId};target=null;canvas.setPointerCapture(e.pointerId);canvas.classList.add('dragging');});
-  canvas.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x;rotation+=dx*.005;drag.x=e.clientX;});
+  hero.addEventListener('pointermove',e=>{if(e.pointerType==='touch')return;const rect=hero.getBoundingClientRect();Constellations.pointer(phase==='idle'?{x:(e.clientX-rect.left)/P,y:(e.clientY-rect.top)/P}:null);if(reduced)return;mouse.x=(e.clientX/rect.width-.5)*2;mouse.y=((e.clientY-rect.top)/rect.height-.5)*1.5;});
+  hero.addEventListener('pointerleave',()=>{mouse.x=0;mouse.y=0;Constellations.pointer(null);});
+  let meteorTap=null,skyTap=null;
+  function meteorAt(event){const rect=canvas.getBoundingClientRect(),x=(event.clientX-rect.left)/P,y=(event.clientY-rect.top)/P;return SpaceObjects.hitTest(x,y);}
+  canvas.addEventListener('pointerdown',e=>{if(phase!=='idle'||(e.button!==0&&e.pointerType==='mouse'))return;skyTap={x:e.clientX,y:e.clientY};const meteor=meteorAt(e);if(meteor){meteorTap={id:meteor.id,x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId);return;}drag={x:e.clientX,id:e.pointerId};target=null;canvas.setPointerCapture(e.pointerId);canvas.classList.add('dragging');});
+  canvas.addEventListener('pointermove',e=>{if(meteorTap){if(Math.hypot(e.clientX-meteorTap.x,e.clientY-meteorTap.y)>10)meteorTap=null;return;}if(!drag){canvas.style.cursor=phase==='idle'&&meteorAt(e)?'crosshair':'';return;}const dx=e.clientX-drag.x;rotation+=dx*.005;drag.x=e.clientX;});
   addEventListener('pagehide',remember);
   addEventListener('pageshow',e=>{if(e.persisted){const previous=selected;cancel();if(previous>=0)ascend(previous);}});
-  const release=()=>{drag=null;canvas.classList.remove('dragging');};canvas.addEventListener('pointerup',release);canvas.addEventListener('pointercancel',release);
+  const release=()=>{drag=null;meteorTap=null;skyTap=null;canvas.classList.remove('dragging');};canvas.addEventListener('pointerup',e=>{if(meteorTap&&phase==='idle'&&Math.hypot(e.clientX-meteorTap.x,e.clientY-meteorTap.y)<=10)SpaceObjects.explode(meteorTap.id);else if(skyTap&&phase==='idle'&&Math.hypot(e.clientX-skyTap.x,e.clientY-skyTap.y)<=10){const rect=canvas.getBoundingClientRect();Constellations.tap((e.clientX-rect.left)/P,(e.clientY-rect.top)/P);}release();});canvas.addEventListener('pointercancel',release);
 })();
 
 
