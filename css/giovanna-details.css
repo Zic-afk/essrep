@@ -5,3 +5,7 @@
 @media(max-width:700px){.giovanna-steps{padding-left:27px;row-gap:30px}.case-tools{gap:10px;margin-bottom:30px}.word-group small{font-size:7px!important;letter-spacing:0}.living-word:is(:hover,:focus-visible,.is-open) .word-group{transform:translateX(calc(var(--offset)*2px))}.is-blueprint [data-blueprint]:after{font-size:7px}}
 @media(prefers-reduced-motion:reduce){.word-group,.word-letter,.word-group small,.route-fill,.case-route circle,.blueprint-toggle{transition:none}}
 @media(hover:none){.living-word:hover:not(.is-open):not(:focus-visible) .word-group,.living-word:hover:not(.is-open):not(:focus-visible) .word-letter{transform:none}.living-word:hover:not(.is-open):not(:focus-visible) small{opacity:0;transform:translate(-50%,7px)}}
+.giovanna-next-project{position:relative;top:-16px;z-index:10;display:table;margin:0 max(24px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) auto;padding:10px 0;color:#9edce1;font:400 14px/1.5 Arial,sans-serif;letter-spacing:.3px;text-shadow:0 0 12px #9edce144}
+.giovanna-next-project:hover{text-decoration:underline;text-underline-offset:5px}
+.giovanna-next-project:focus-visible{outline:2px solid #9edce1;outline-offset:7px}
+.giovanna-next-project span{margin-left:8px}

@@ -1,0 +1,13 @@
+.page-overlay{position:fixed;inset:0;width:100%;height:100%;max-width:none;max-height:none;margin:0;padding:0;border:0;background:transparent;overflow:hidden;opacity:0;transition:opacity .32s ease}
+.page-overlay.is-visible{opacity:1}
+.page-overlay::backdrop{background:#080e1900;backdrop-filter:blur(0);transition:background .32s ease,backdrop-filter .32s ease}
+.page-overlay.is-visible::backdrop{background:#080e19b8;backdrop-filter:blur(12px)}
+.page-overlay iframe{display:block;width:100%;height:100%;border:0;background:transparent;transform:translateY(18px);transition:transform .32s ease}
+.page-overlay iframe[hidden]{display:none}
+.page-overlay.is-visible iframe{transform:translateY(0)}
+.page-overlay-close{position:absolute;z-index:2;right:14px;top:14px;width:36px;height:36px;border:1px solid #c5e99a88;background:#0b1b28;color:var(--accent);font:24px/1 sans-serif;cursor:pointer}
+.overlay-document,.overlay-document body{background:transparent}
+.overlay-document .header{padding-right:68px;background:#080e19b8;backdrop-filter:blur(8px)}
+.overlay-document .content-section,.overlay-document .site-footer{background:transparent}
+.standalone-close{display:grid;place-items:center}.overlay-document .standalone-close{display:none}
+@media(prefers-reduced-motion:reduce){.page-overlay,.page-overlay::backdrop,.page-overlay iframe{transition:none}}
