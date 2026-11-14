@@ -1,0 +1,109 @@
+
+name: MASQUAD CD
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: masquad-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy MASQUAD to VPS
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Find successful CI for this commit
+        id: ci
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          RUN_ID=$(gh api --method GET \
+          "repos/$REPO/actions/workflows/ci.yml/runs" \
+          -f head_sha="$SHA" \
+          -f branch="main" \
+          -f status="success" \
+          -f event="workflow_dispatch" \
+          --jq '.workflow_runs[0].id // empty')
+
+          if [[ -z "$RUN_ID" ]]; then
+            echo "ERROR: No successful manual CI for commit $SHA"
+            exit 1
+          fi
+
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "Found successful CI run: $RUN_ID"
+
+      - name: Download tested site artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ steps.ci.outputs.run_id }}
+        run: |
+          mkdir -p site
+          gh run download "$RUN_ID" \
+            --repo "$REPO" \
+            --name masquad-site \
+            --dir site
+
+          test -s site/index.html
+
+      - name: Configure SSH
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Upload release to VPS
+        env:
+          HOST: ${{ secrets.VPS_HOST }}
+          USER: ${{ secrets.VPS_USER }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          ssh -o BatchMode=yes \
+            "$USER@$HOST" \
+            "mkdir -p /opt/masquad/releases/$SHA"
+
+          rsync -avc \
+            -e "ssh -o BatchMode=yes" \
+            site/ \
+            "$USER@$HOST:/opt/masquad/releases/$SHA/"
+          
+          ssh -o BatchMode=yes \
+            "$USER@$HOST" \
+            "test -s /opt/masquad/releases/$SHA/index.html"
+
+      - name: Deploy release
+        env:
+          HOST: ${{ secrets.VPS_HOST }}
+          USER: ${{ secrets.VPS_USER }}
+          SHA: ${{ github.sha }}
+        run: |
+          ssh -o BatchMode=yes \
+            "$USER@$HOST" \
+            "/opt/masquad/deploy.sh $SHA"
