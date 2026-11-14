@@ -1,0 +1,59 @@
+
+name: MASQUAD CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Node.js tests and artifact
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Run calculator tests
+        run: node tests/calculator.test.js
+
+      - name: Run paths tests
+        run: node tests/paths.test.js
+
+      - name: Run GoPhoto forms tests
+        run: node tests/gophoto-forms.test.js
+
+      - name: Run learning demo tests
+        run: node tests/learning-demo.test.js
+
+      - name: Run page overlay tests
+        run: node tests/page-overlay.test.js
+
+      - name: Run random projects tests
+        run: node tests/random-projects.test.js
+
+      - name: Verify site entry point
+        run: test -f index.html
+
+      - name: Upload MASQUAD artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: masquad-site
+          path: |
+            index.html
+            assets/
+            css/
+            js/
+            pages/
+          if-no-files-found: error
+          retention-days: 7
