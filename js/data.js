@@ -33,7 +33,7 @@ const Esscale = (() => {
     return {ep,server,mobile,factor:round(factor),min:Math.round(ep*3500),max:Math.round(ep*5000),weeks:Math.ceil(ep/15)};
   }
   function message(ids){
-    const result=calculate(ids),selected=new Set(ids);if(!result.ep)return 'Здравствуйте! Хочу обсудить проект с ESSCALE.';
+    const result=calculate(ids),selected=new Set(ids);if(!result.ep)return 'Здравствуйте! Хочу обсудить проект с MASQUAD.';
     const lines=['Здравствуйте! Хочу обсудить проект.','Состав предварительного расчёта:'];
     for(const group of groups){const items=group.items.filter(([id])=>selected.has(id));if(items.length){lines.push('',group.title+':');for(const [,title,,value] of items)lines.push(`• ${title} (${group.id==='factors'?'×'+value:value+' EP'})`);}}
     lines.push('',`Объём: ${result.ep} EP`,`Стоимость: ${result.min.toLocaleString('ru-RU')}–${result.max.toLocaleString('ru-RU')} ₽`,`Срок: ${result.weeks} нед.`, 'Предварительная оценка. Хочу уточнить детали.');return lines.join('\n');
