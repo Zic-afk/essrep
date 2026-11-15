@@ -89,7 +89,8 @@ jobs:
             "$USER@$HOST" \
             "mkdir -p /opt/masquad/releases/$SHA"
 
-          rsync -avc \
+          rsync -rvc --delete \
+            --no-owner --no-group --no-perms \
             -e "ssh -o BatchMode=yes" \
             site/ \
             "$USER@$HOST:/opt/masquad/releases/$SHA/"
