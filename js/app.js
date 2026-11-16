@@ -77,7 +77,11 @@
   });
   function resize(){
     P=innerWidth<750?3:4;W=Math.ceil(hero.clientWidth/P);H=Math.ceil(hero.clientHeight/P);canvas.width=W;canvas.height=H;canvas.style.width=W*P+'px';canvas.style.height=H*P+'px';
-    const geometry=OrbitMath.layout(hero.clientWidth,hero.clientHeight);R=geometry.R/P;CX=geometry.CX/P;CY=geometry.CY/P;image=ctx.createImageData(W,H);lut=[];
+    const sceneRect=hero.getBoundingClientRect();
+    const geometry=OrbitMath.layout(hero.clientWidth,hero.clientHeight,{
+      top:$('.intro').getBoundingClientRect().bottom-sceneRect.top,
+      bottom:$('.orbit-bar').getBoundingClientRect().top-sceneRect.top
+    });R=geometry.R/P;CX=geometry.CX/P;CY=geometry.CY/P;image=ctx.createImageData(W,H);lut=[];
     nebula.width=W;nebula.height=H;atmosphere.width=W;atmosphere.height=H;
     // Cached, dithered nebula. All details use the same low-resolution grid.
     for(let y=0;y<H;y+=2)for(let x=0;x<W;x+=2){
@@ -243,6 +247,7 @@
   const discoveries=PlanetDiscoveries.create({hero,canvas,pins,projects,geometry:()=>({R,CX,CY,W,H,P}),projectPoint:project,phase:()=>phase,locate:i=>{target=OrbitMath.target(projects[i].lon,rotation);turnElapsed=0;},returned:returnIndex,reduced});
   const planetCanvas=document.createElement('canvas'),planetCtx=planetCanvas.getContext('2d');
   function layout(){if(phase!=='idle')cancel();resize();planetCanvas.width=W;planetCanvas.height=H;draw(0);}addEventListener('resize',layout);layout();setPause(paused);
+  document.fonts.ready.then(()=>{if(phase==='idle')layout();});
   if(returnIndex>=0)ascend(returnIndex);
   let inView=true;new IntersectionObserver(entries=>{inView=entries[0].isIntersecting;},{threshold:0}).observe($('#home'));
   function frame(now){const dt=Math.min((now-last)/1000,.05);last=now;if(!document.hidden&&inView)draw(dt);requestAnimationFrame(frame);}requestAnimationFrame(frame);

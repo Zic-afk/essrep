@@ -9,3 +9,8 @@ for(const [w,h] of [[320,780],[390,844],[750,900],[1024,768],[1440,1000],[1920,1
   }
 }
 console.log('Geometry checks passed: complete globe fits 7 viewports; destinations and shortest rotations.');
+for(const [width,height,top,bottom] of [[390,844,385,740],[393,760,375,660],[320,640,340,540],[430,932,410,825]]){
+  const g=layout(width,height,{top,bottom});
+  assert.ok(g.CY-g.R>=top+17.99,'Mobile planet clears text and both buttons');
+  assert.ok(g.CY+g.R<=bottom-17.99,'Mobile planet clears bottom controls');
+}
