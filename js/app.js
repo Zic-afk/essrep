@@ -248,6 +248,14 @@
   const planetCanvas=document.createElement('canvas'),planetCtx=planetCanvas.getContext('2d');
   function layout(){if(phase!=='idle')cancel();resize();planetCanvas.width=W;planetCanvas.height=H;draw(0);}addEventListener('resize',layout);layout();setPause(paused);
   document.fonts.ready.then(()=>{if(phase==='idle')layout();});
+  if(new URLSearchParams(location.search).get('debug')==='canvas'){
+    window.CanvasDiagnostics={
+      inspect:()=>({phase,rotation,paused,reduced,geometry:{W,H,P,R,CX,CY},buffers:{scene:{width:canvas.width,height:canvas.height},planet:{width:planetCanvas.width,height:planetCanvas.height},image:{width:image.width,height:image.height},atmosphere:{width:atmosphere.width,height:atmosphere.height}},context:ctx.getContextAttributes?.()||null}),
+      snapshot:layer=>{draw(0);return (layer==='planet'?planetCanvas:canvas).toDataURL('image/png');},
+      reset:()=>layout(),
+      pause:()=>setPause(!paused)
+    };
+  }
   if(returnIndex>=0)ascend(returnIndex);
   let inView=true;new IntersectionObserver(entries=>{inView=entries[0].isIntersecting;},{threshold:0}).observe($('#home'));
   function frame(now){const dt=Math.min((now-last)/1000,.05);last=now;if(!document.hidden&&inView)draw(dt);requestAnimationFrame(frame);}requestAnimationFrame(frame);
