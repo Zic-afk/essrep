@@ -82,13 +82,25 @@
     b.dataset.lat=p.lat;b.dataset.lon=p.lon;b.setAttribute('aria-label',`О проекте ${p.title}`);b.setAttribute('aria-haspopup','dialog');b.onclick=e=>{if(e.button||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;e.preventDefault();focus(i);};$('#pins').append(b);return b;
   });
   function resize(){
+    const mobile=innerWidth<750&&innerHeight>innerWidth*.85;
+    const guide=$('.planet-guide');
+    let mobileGeometry=null;
+    if(mobile){
+      const scene=hero.getBoundingClientRect(),introBottom=$('.intro').getBoundingClientRect().bottom-scene.top;
+      const radius=hero.clientWidth*.40,guideTop=introBottom+24;
+      const planetTop=guideTop+guide.offsetHeight+24;
+      const requiredHeight=planetTop+radius*2+36+$('.orbit-bar').offsetHeight;
+      hero.style.height=Math.ceil(Math.max(innerHeight,requiredHeight))+'px';
+      mobileGeometry={R:radius,CX:hero.clientWidth*.5,CY:planetTop+radius};
+      guide.style.left=mobileGeometry.CX+'px';guide.style.top=guideTop+'px';
+    }else hero.style.removeProperty('height');
     P=innerWidth<750?3:4;W=Math.ceil(hero.clientWidth/P);H=Math.ceil(hero.clientHeight/P);canvas.width=W;canvas.height=H;canvas.style.width=W*P+'px';canvas.style.height=H*P+'px';
     const sceneRect=hero.getBoundingClientRect();
-    const geometry=OrbitMath.layout(hero.clientWidth,hero.clientHeight,{
+    const geometry=mobileGeometry||OrbitMath.layout(hero.clientWidth,hero.clientHeight,{
       top:$('.intro').getBoundingClientRect().bottom-sceneRect.top+64,
       bottom:$('.orbit-bar').getBoundingClientRect().top-sceneRect.top
     });R=geometry.R/P;CX=geometry.CX/P;CY=geometry.CY/P;image=ctx.createImageData(W,H);lut=[];
-    const guide=$('.planet-guide');guide.style.left=geometry.CX+'px';guide.style.top=Math.max(55,geometry.CY-geometry.R-90)+'px';
+    if(!mobile){guide.style.left=geometry.CX+'px';guide.style.top=Math.max(55,geometry.CY-geometry.R-90)+'px';}
     nebula.width=W;nebula.height=H;atmosphere.width=W;atmosphere.height=H;
     // Cached, dithered nebula. All details use the same low-resolution grid.
     for(let y=0;y<H;y+=2)for(let x=0;x<W;x+=2){
