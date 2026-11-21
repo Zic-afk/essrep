@@ -11,7 +11,7 @@ const PlanetDiscoveries=(()=>{
     let clock=0,noteUntil=0,nextSignal=9,incoming=null,incomingUntil=0,hover=-1,scan=null,scanAlpha=0,hold=null,timer=null,scanUntil=0,reward=null,rewardDone=false;
     try{rewardDone=localStorage.getItem(rewardKey)==='yes';}catch{}
     const say=(message,duration=6)=>{text.textContent=message;note.hidden=false;noteUntil=clock+duration;};
-    const scanButton=document.createElement('button');scanButton.type='button';scanButton.id='planet-scan';scanButton.textContent='⌖';scanButton.setAttribute('aria-label','Сканировать планету');scanButton.title='Сканировать · или удерживайте планету';hero.querySelector('.controls').append(scanButton);
+    const scanButton=document.createElement('button');scanButton.type='button';scanButton.id='planet-scan';scanButton.textContent='⌖';scanButton.setAttribute('aria-label','Сканировать планету');hero.querySelector('.controls').append(scanButton);
     function begin(point){if(phase()!=='idle')return;scan=point;scanUntil=Infinity;hero.dataset.scanning='true';scanButton.setAttribute('aria-pressed','true');say('СКАНИРОВАНИЕ / GIOVANNA · '+projects.length+' узла · сектор '+Math.round(point.x)+' : '+Math.round(point.y),3);}
     function end(){clearTimeout(timer);hold=null;scanUntil=clock;hero.dataset.scanning='false';scanButton.setAttribute('aria-pressed','false');}
     scanButton.onclick=()=>{const g=geometry();begin({x:g.CX,y:g.CY});scanUntil=clock+2.8;};

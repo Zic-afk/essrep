@@ -2,7 +2,7 @@
 const Esscale = (() => {
   const projects = [
     {id:'wearninglords',page:'pages/project-wearninglords.html',title:'WearningLords',category:'ПРИЛОЖЕНИЕ / ИЗУЧЕНИЕ СЛОВ',description:'Изучение слов с вводом ответа. Чтобы закрепить слово, нужно ответить верно в три разных дня без ошибок между ними.',tags:['iPhone · iPad · Mac','10 языков'],note:'Скоро в App Store',url:'https://esscale.ru/wearninglords/',bg:'#bbc9a1',fg:'#263c2a',symbol:'Aa',lat:.25,lon:-.6},
-    {id:'scandere',page:'pages/project-scandere.html',title:'Scandere',category:'УПРАВЛЕНИЕ ПРОЦЕССАМИ',description:'Система управления компанией и финансового учёта. Математическая модель связывает выручку, прибыль, маржинальность и конверсию.',tags:['297 EP','20 недель','Android · iOS · Windows'],note:'Процессы, сотрудники, склады и финансы',url:'https://esscale.ru/scandere/',bg:'#adc4cf',fg:'#234754',symbol:'▥',lat:.58,lon:.75},
+    {id:'scandere',page:'pages/project-scandere.html',title:'Scandere',category:'УПРАВЛЕНИЕ ПРОЦЕССАМИ',description:'Scandere – это система управления и анализа внутренних процессов компании. Внутри системы финансовый учет, математические расчеты KPI, парсинг и анализ информации из корпоративных чатов, управление складами и торговыми точками.',tags:['297 EP','20 недель','Android · iOS · Windows'],note:'Процессы, сотрудники, склады и финансы',url:'https://esscale.ru/scandere/',bg:'#adc4cf',fg:'#234754',symbol:'▥',lat:.58,lon:.75},
     {id:'gophoto',page:'pages/project-gophoto.html',title:'GoPhoto',category:'ПЛАГИН / LIGHTROOM CLASSIC',description:'Плагин для Lightroom Classic: публикация фотографий в GoPhoto прямо из каталога.',tags:['Lightroom Classic 12+','Версия 0.2.3'],note:'Версия 0.2.3',url:null,bg:'#b6a8c2',fg:'#42334e',symbol:'◫',lat:-.28,lon:2.8}
   ];
   projects.push({id:'giovanna',page:'pages/project-giovanna.html',title:'Giovanna',category:'ИНТЕРАКТИВНОЕ ПОРТФОЛИО',description:'Планета, на которой живут наши проекты. Интерактивный космос, объёмные карточки и путешествия через облака.',tags:['Canvas · CSS · JavaScript','Без 3D-движка'],note:'Вы сейчас здесь',url:null,bg:'#9edce1',fg:'#163343',previewAccent:'#9edce1',symbol:'◉',lat:-.4,lon:-.1});
@@ -12,7 +12,9 @@ const Esscale = (() => {
     scandere:['Точки, склады и сотрудники','Расчёт выручки, прибыли и конверсии','Учёт смен и зарплат'],
     gophoto:['Установка в Lightroom Classic','Подключение к GoPhoto','Публикация фотоколлекций']
   };
-  const teasers={wearninglords:'Тренировка слов, где ответ нужно вспомнить и набрать самостоятельно.',scandere:'Процессы и финансы компании — в одной математической модели.',gophoto:'Публикация фотографий в GoPhoto прямо из Lightroom Classic.'};
+  const hoverDescriptions={scandere:'Система управления бизнесом. Ваша личная ERP с широким функционалом.',giovanna:'Сам этот сайт - тоже проект',wearninglords:'Тренировка английского. Сад слов.'};
+  projects.forEach(project=>{project.hoverDescription=hoverDescriptions[project.id];});
+  const teasers={wearninglords:'Приложение - тренажер слов, где ответ нужно вспомнить и набрать самостоятельно.',scandere:'Scandere – Система управления бизнесом. Ваша личная ERP с широким кастомным функционалом, настраиваемым под ваши личные потребности. Проекты и финансы компании в одной математической модели.',gophoto:'Публикация фотографий в GoPhoto прямо из Lightroom Classic.'};
   teasers.giovanna='Планета, на которой живут наши проекты. Вы сейчас внутри одного из них.';
   for(const project of projects){project.features=features[project.id];project.teaser=teasers[project.id];if(project.id==='gophoto')project.previewAccent='#38BDF8';}
   const groups = [

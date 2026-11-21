@@ -10,10 +10,11 @@
   <main>
     <section id="home" class="hero" aria-label="Giovanna — планета проектов">
       <canvas id="space" aria-hidden="true"></canvas><span class="planet-name">GIOVANNA / ПЛАНЕТА ПРОЕКТОВ</span>
+      <div class="planet-guide"><h2>Наши проекты</h2><p>Нажмите на маяк, чтобы посмотреть проект</p></div>
       <div class="intro"><div class="eyebrow"><i></i><span>НАУКА · РАЗРАБОТКА · ИНЖЕНЕРИЯ · БИЗНЕС</span></div><h1>От смелой мысли<br>до первого <em>запуска.</em></h1><p>Находим путь и проходим его вместе с вами.</p><div class="intro-actions"><a class="primary-link orbit-cta" href="pages/calculator.html">Рассчитать проект ↗</a><a class="orbit-directions-link" href="pages/directions.html">Что мы решаем →</a></div></div>
       <div id="pins" aria-label="Проекты на планете"></div>
       <button id="skip-journey" class="skip-journey" hidden>Пропустить путешествие ↗</button><button id="cancel-flight" class="cancel-flight" hidden>Отменить полёт · Esc</button>
-      <div class="orbit-bar"><div class="status"><i></i><span id="status" role="status">На орбите · 4 проекта</span></div><div class="controls"><button id="prev" aria-label="Открыть предыдущий проект">←</button><button id="pause" aria-label="Приостановить вращение">Ⅱ</button><button id="next" aria-label="Открыть следующий проект">→</button><span>вращайте планету</span></div><button id="list-toggle" class="quiet" aria-haspopup="dialog">Проекты ↗</button></div>
+      <div class="orbit-bar"><div class="status"><i></i><span id="status" role="status">Сейчас на орбите · <button type="button" class="project-count" aria-haspopup="dialog" aria-controls="project-list" aria-label="Открыть список: 4 проекта">4 проекта</button></span></div><div class="controls"><button id="prev" aria-label="Открыть предыдущий проект">←</button><button id="pause" aria-label="Приостановить вращение">Ⅱ</button><button id="next" aria-label="Открыть следующий проект">→</button></div><button id="list-toggle" class="quiet" aria-haspopup="dialog">Проекты ↗</button></div>
     </section>
   </main>
   <svg id="preview-connector" class="preview-connector" aria-hidden="true" hidden><path id="preview-line"/><circle id="preview-ring" r="12"/><rect id="preview-origin" width="8" height="8"/></svg>

@@ -29,7 +29,7 @@
   $('#preview-prev').onclick=()=>cycleProject(-1);$('#preview-next').onclick=()=>cycleProject(1);
   preview.addEventListener('cancel',event=>{event.preventDefault();hidePreview();});
   preview.addEventListener('click',event=>{if(event.target!==preview)return;const rect=preview.getBoundingClientRect();if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)hidePreview();});
-  preview.addEventListener('close',()=>{clearPreviewVisuals();if(phase==='preview'){selected=-1;phase='idle';$('#status').textContent='На орбите · 4 проекта';$('#list-toggle').focus({preventScroll:true});}});
+  preview.addEventListener('close',()=>{clearPreviewVisuals();if(phase==='preview'){selected=-1;phase='idle';resetOrbitStatus();$('#list-toggle').focus({preventScroll:true});}});
   $('#preview-open').onclick=event=>{if(event.button||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;event.preventDefault();launch();};
   const spaceActions=document.createElement('div');spaceActions.className='space-actions';spaceActions.setAttribute('role','group');spaceActions.setAttribute('aria-label','Интерактивные объекты космоса');hero.append(spaceActions);
   const actionButtons=new Map();
@@ -49,6 +49,11 @@
     }
     for(const [id,button] of actionButtons)if(!present.has(id))button.hidden=true;
   }
+  function resetOrbitStatus(){
+    const button=document.createElement('button');button.type='button';button.className='project-count';button.textContent=projects.length+' проекта';button.setAttribute('aria-haspopup','dialog');button.setAttribute('aria-controls','project-list');button.setAttribute('aria-label','Открыть список: '+projects.length+' проекта');
+    $('#status').replaceChildren(document.createTextNode('Сейчас на орбите · '),button);
+  }
+  hero.addEventListener('click',event=>{if(event.target.closest('.project-count'))projectList.showModal();});
   $('#list-toggle').onclick=()=>projectList.showModal();
   $('#list-close').onclick=()=>projectList.close();
   projectList.querySelectorAll('a').forEach((link,index)=>{link.onclick=event=>{if(event.button||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;event.preventDefault();projectList.close();focus(index);};});
@@ -73,15 +78,17 @@
   const pins=projects.map((p,i)=>{
     const b=document.createElement('a');b.className='beacon'+(p.id==='giovanna'?' beacon-giovanna':'');b.href=p.page;
     b.innerHTML=`<span class="beacon-ring" aria-hidden="true"></span><span class="beacon-dot" aria-hidden="true"></span><span class="beacon-label"><small>0${i+1} / ПРОЕКТ</small>${p.title}<span class="beacon-preview">${p.tags[0]}<br>Описание и функции ↗</span></span>`;
+    if(p.hoverDescription){const description=b.querySelector('.beacon-preview');description.textContent=p.hoverDescription;description.classList.add('beacon-description');}
     b.dataset.lat=p.lat;b.dataset.lon=p.lon;b.setAttribute('aria-label',`О проекте ${p.title}`);b.setAttribute('aria-haspopup','dialog');b.onclick=e=>{if(e.button||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;e.preventDefault();focus(i);};$('#pins').append(b);return b;
   });
   function resize(){
     P=innerWidth<750?3:4;W=Math.ceil(hero.clientWidth/P);H=Math.ceil(hero.clientHeight/P);canvas.width=W;canvas.height=H;canvas.style.width=W*P+'px';canvas.style.height=H*P+'px';
     const sceneRect=hero.getBoundingClientRect();
     const geometry=OrbitMath.layout(hero.clientWidth,hero.clientHeight,{
-      top:$('.intro').getBoundingClientRect().bottom-sceneRect.top,
+      top:$('.intro').getBoundingClientRect().bottom-sceneRect.top+64,
       bottom:$('.orbit-bar').getBoundingClientRect().top-sceneRect.top
     });R=geometry.R/P;CX=geometry.CX/P;CY=geometry.CY/P;image=ctx.createImageData(W,H);lut=[];
+    const guide=$('.planet-guide');guide.style.left=geometry.CX+'px';guide.style.top=Math.max(55,geometry.CY-geometry.R-90)+'px';
     nebula.width=W;nebula.height=H;atmosphere.width=W;atmosphere.height=H;
     // Cached, dithered nebula. All details use the same low-resolution grid.
     for(let y=0;y<H;y+=2)for(let x=0;x<W;x+=2){
@@ -201,7 +208,7 @@
     if(phase==='idle')return;transitionId++;SolarJourney.stop();$('#skip-journey').hidden=true;if(flight)flight.cancel();if(zoom)zoom.cancel();curtain.classList.remove('is-active');
     if(preview.open)preview.close();
     clearPreviewVisuals();
-    target=null;selected=-1;phase='idle';hero.classList.remove('is-travelling');$('.intro').inert=false;$('#cancel-flight').hidden=true;$('#status').textContent='На орбите · 4 проекта';$('#list-toggle').focus({preventScroll:true});
+    target=null;selected=-1;phase='idle';hero.classList.remove('is-travelling');$('.intro').inert=false;$('#cancel-flight').hidden=true;resetOrbitStatus();$('#list-toggle').focus({preventScroll:true});
   }
   async function ascend(index){
     if(reduced){remember();return;}
